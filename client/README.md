@@ -133,6 +133,55 @@ Para evitar rutas relativas complejas (`../../..`) y mantener un código limpio,
 
 ---
 
+## 🎨 Sistema de Diseño (Design System — Figma & Shadcn UI)
+
+La interfaz de **MeetFlow** está construida sobre un sistema de diseño oscuro (*Dark Theme*), moderno y envolvente, extraído e inspirado directamente en el prototipo y diseño oficial de **Figma** ([notice-reader-34962570.figma.site](https://notice-reader-34962570.figma.site/)), integrando la suite completa de componentes de **Shadcn UI** con **Tailwind CSS v4**.
+
+### 1. 🌈 Paleta de Colores y Tokens Principales
+
+Los tokens globales residen en `src/index.css` y se mapean automáticamente a través de `@theme inline` de Tailwind v4:
+
+| Token / Variable | Valor HEX / CSS | Uso en la Aplicación |
+|---|---|---|
+| `--background` | `#060d1f` | Fondo general de la plataforma (azul noche profundo). |
+| `--card` / `--popover` | `#0d1730` | Superficies de tarjetas, paneles modales y barras laterales. |
+| `--primary` | `#3b82f6` | Acciones principales, botones primarios y enlaces destacados. |
+| `--primary-foreground`| `#ffffff` | Texto sobre elementos de color primario. |
+| `--secondary` | `#1a2845` | Botones secundarios y elementos de contraste suave. |
+| `--muted` | `#111f3a` | Fondos atenuados para elementos inactivos o filas alternadas. |
+| `--muted-foreground` | `#64748b` | Texto secundario, subtítulos y placeholders. |
+| `--destructive` | `#ef4444` | Acciones críticas (colgar, salir, rechazar participante). |
+| `--border` | `rgba(255, 255, 255, 0.08)` | Bordes sutiles y divisores translúcidos. |
+| `--input` | `rgba(255, 255, 255, 0.10)` | Bordes y fondos de inputs de texto y selectores. |
+| `--ring` | `#3b82f6` | Anillo de foco accesible para teclado en cualquier control. |
+| `--radius` | `10px` | Radio de curvatura estándar para tarjetas, inputs y botones. |
+
+---
+
+### 2. 🔤 Tipografía
+
+Se utilizan dos familias tipográficas complementarias cargadas con optimización `preconnect` en `index.html`:
+
+* **`Plus Jakarta Sans`** (`var(--font-heading)`): Diseñada para encabezados (`h1` a `h6`), títulos de reuniones, botones y badges de estado. Proporciona una identidad moderna y geométrica.
+* **`Inter`** (`var(--font-sans)`): Fuente de lectura por excelencia para el cuerpo de texto, inputs, mensajes de chat y datos tabulares.
+
+---
+
+### 3. ✨ Clases de Utilidad y Efectos Especiales de Figma
+
+El archivo `src/index.css` incluye utilidades diseñadas específicamente para videollamadas y dashboards:
+
+* **`.glass`**: Efecto *glassmorphism* con desenfoque de fondo (`backdrop-filter: blur(16px)`), borde translúcido y fondo semitransparente. Ideal para modales y paneles flotantes.
+* **`.glow-blue`**: Sombra con resplandor azul sutil (`box-shadow: 0 0 20px rgba(59, 130, 246, 0.2)`).
+* **`.btn-primary`**: Botón con gradiente fluido de `#3b82f6` a `#2563eb`, hover animado y elevación.
+* **`.btn-danger`**: Botón de llamada destructivo con gradiente rojo de `#ef4444` a `#dc2626`.
+* **`.control-btn`**: Botón vertical para la barra de control de la sala (micrófono, cámara, pantalla compartida) con estados normal, activo y peligro.
+* **`.speaking-ring` & `.speaking`**: Animación de pulso concéntrico (`pulse-ring`) para resaltar en tiempo real al participante que está hablando.
+* **`.reconnect-pulse`**: Animación para avisos de pérdida o reconexión de red en vivo.
+* **Badges de Estado (`.badge-*`)**: `.badge-blue` (general), `.badge-green` (en vivo / exitosa), `.badge-yellow` (pendiente / advertencia), `.badge-red` (rechazado / desconectado), `.badge-purple` (agenda).
+
+---
+
 ## 🚀 Scripts Disponibles
 
 En el directorio del proyecto, puedes ejecutar:
