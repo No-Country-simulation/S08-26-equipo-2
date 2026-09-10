@@ -1,0 +1,45 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { meetingsService, DEFAULT_MEETINGS } from "../services/meetingsService";
+import type { Meeting } from "../types/meeting";
+
+export const MEETINGS_QUERY_KEY = ["meetings"] as const;
+
+/**
+ * Hook para consultar reuniones usando TanStack Query
+ */
+export function useMeetings(initialData?: Meeting[]) {
+  return useQuery({
+    queryKey: MEETINGS_QUERY_KEY,
+    queryFn: () => meetingsService.getMeetings(),
+    initialData: initialData || DEFAULT_MEETINGS,
+    staleTime: 1000 * 60 * 2, // 2 minutos
+  });
+}
+
+/**
+ * Hook para crear una nueva reunión
+ */
+export function useCreateMeeting() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (newMeeting: Partial<Meeting>) => meetingsService.createMeeting(newMeeting),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: MEETINGS_QUERY_KEY });
+    },
+  });
+}
+
+/**
+ * Hook para cancelar una reunión
+ */
+export function useCancelMeeting() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (meetingId: string) => meetingsService.cancelMeeting(meetingId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: MEETINGS_QUERY_KEY });
+    },
+  });
+}
