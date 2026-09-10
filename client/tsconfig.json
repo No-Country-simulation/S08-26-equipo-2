@@ -14,7 +14,8 @@
       "@stores/*": ["./src/stores/*"],
       "@types/*": ["./src/types/*"],
       "@lib/*": ["./src/lib/*"],
-      "@views/*": ["./src/views/*"]
+      "@views/*": ["./src/views/*"],
+      "@tests/*": ["./src/tests/*"]
     }
   }
 
