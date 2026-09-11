@@ -12,13 +12,21 @@ export interface UseTableMeetingsOptions {
   onJoinMeeting?: MeetingsTableProps["onJoinMeeting"];
   onEditMeeting?: MeetingsTableProps["onEditMeeting"];
   onCancelMeeting?: MeetingsTableProps["onCancelMeeting"];
+  onViewDetailsMeeting?: MeetingsTableProps["onViewDetailsMeeting"];
 }
 
 /**
  * Hook para encapsular la lógica de filtrado, búsqueda, estado y navegación de la tabla de reuniones
  */
 export function useTableMeetings(options: UseTableMeetingsOptions = {}) {
-  const { onNav, onCreateMeeting, onJoinMeeting, onEditMeeting, onCancelMeeting } = options;
+  const {
+    onNav,
+    onCreateMeeting,
+    onJoinMeeting,
+    onEditMeeting,
+    onCancelMeeting,
+    onViewDetailsMeeting,
+  } = options;
   const { data: meetings = [], isLoading, isFetching, refetch } = useMeetings();
 
   const [query, setQuery] = useState("");
@@ -62,6 +70,15 @@ export function useTableMeetings(options: UseTableMeetingsOptions = {}) {
     },
     [onCancelMeeting],
   );
+
+  const handleViewDetails = useCallback(
+    (meeting: Meeting) => {
+      if (onViewDetailsMeeting) {
+        onViewDetailsMeeting(meeting);
+      }
+    },
+    [onViewDetailsMeeting],
+  );
   
   const filteredMeetings = useMemo(() => {
     const cleanQuery = deferredQuery.toLowerCase().trim();
@@ -87,5 +104,6 @@ export function useTableMeetings(options: UseTableMeetingsOptions = {}) {
     handleJoin,
     handleEdit,
     handleCancel,
+    handleViewDetails,
   };
 }

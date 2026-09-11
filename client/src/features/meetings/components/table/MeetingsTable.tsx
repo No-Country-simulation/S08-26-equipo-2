@@ -10,6 +10,7 @@ import { MeetingsFilters } from './MeetingsFilters';
 import { MeetingRow } from './MeetingRow';
 import { MeetingsEmptyState } from './MeetingsEmptyState';
 import { CancelMeetingDialog } from './CancelMeetingDialog';
+import { MeetingDetailsSheet } from './MeetingDetailsSheet';
 
 // Componentes de Shadcn UI
 import {
@@ -28,11 +29,13 @@ export default function MeetingsTable({
   onJoinMeeting,
   onEditMeeting,
   onCancelMeeting,
+  onViewDetailsMeeting,
   className = '',
   title = 'Historial de reuniones',
   showCreateButton = true,
 }: MeetingsTableProps) {
   const [meetingToCancel, setMeetingToCancel] = useState<Meeting | null>(null);
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const cancelMutation = useCancelMeeting();
 
   const handleRowCancel = (meeting: Meeting) => {
@@ -40,6 +43,14 @@ export default function MeetingsTable({
       onCancelMeeting(meeting);
     } else {
       setMeetingToCancel(meeting);
+    }
+  };
+
+  const handleRowViewDetails = (meeting: Meeting) => {
+    if (onViewDetailsMeeting) {
+      onViewDetailsMeeting(meeting);
+    } else {
+      setSelectedMeeting(meeting);
     }
   };
 
@@ -66,12 +77,14 @@ export default function MeetingsTable({
     handleJoin,
     handleEdit,
     handleCancel,
+    handleViewDetails,
   } = useTableMeetings({
     onNav,
     onCreateMeeting,
     onJoinMeeting,
     onEditMeeting,
     onCancelMeeting: handleRowCancel,
+    onViewDetailsMeeting: handleRowViewDetails,
   });
 
   return (
@@ -126,6 +139,7 @@ export default function MeetingsTable({
                   onJoin={handleJoin}
                   onEdit={handleEdit}
                   onCancel={handleCancel}
+                  onViewDetails={handleViewDetails}
                 />
               ))
             )}
@@ -145,6 +159,17 @@ export default function MeetingsTable({
         }}
         onConfirm={handleConfirmCancel}
         isPending={cancelMutation.isPending}
+      />
+
+      {/* 6. Sheet lateral con los detalles completos de la reunión con Shadcn Sheet */}
+      <MeetingDetailsSheet
+        meeting={selectedMeeting}
+        open={Boolean(selectedMeeting)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedMeeting(null);
+        }}
+        onJoin={handleJoin}
+        onEdit={handleEdit}
       />
     </div>
   );
