@@ -4,3 +4,6 @@ export * from "./hooks";
 export * from "./components";
 export * from "./views/HistoryScreen";
 export { default as HistoryScreen } from "./views/HistoryScreen";
+export * from "./views/CreateMeetingScreen";
+export { default as CreateMeetingScreen } from "./views/CreateMeetingScreen";
+

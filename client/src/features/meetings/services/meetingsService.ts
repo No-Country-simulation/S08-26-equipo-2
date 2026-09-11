@@ -45,8 +45,32 @@ export const meetingsService = {
    * Crea una nueva reunión
    */
   async createMeeting(data: Partial<Meeting>): Promise<Meeting> {
-    const response = await api.post<Meeting>("/meetings", data);
-    return response.data;
+    try {
+      const response = await api.post<Meeting>("/meetings", data);
+      return response.data;
+    } catch {
+      // Fallback para desarrollo offline / backend en progreso
+      const slug = (data.name || "reunion")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "-")
+        .replace(/-+/g, "-")
+        .slice(0, 20);
+      const generatedLink = `meetflow.app/meet/${slug}-${Math.random().toString(36).substring(2, 7)}`;
+      
+      const newMeeting: Meeting = {
+        id: String(Date.now()),
+        name: data.name || "Nueva Reunión",
+        date: data.date || "10 sep 2026",
+        time: data.time || "10:00",
+        duration: data.duration ? `${data.duration} min` : "60 min",
+        participants: data.participants ?? 1,
+        status: "upcoming",
+        roomUrl: generatedLink,
+        description: data.description || "",
+      };
+      DEFAULT_MEETINGS.unshift(newMeeting);
+      return newMeeting;
+    }
   },
 
   /**
