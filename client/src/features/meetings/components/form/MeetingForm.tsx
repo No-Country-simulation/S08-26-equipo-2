@@ -1,10 +1,7 @@
 import { Controller } from "react-hook-form";
 import { Link as LinkIcon, Users, ChevronRight, RefreshCw } from "lucide-react";
 import { useFormMeetings } from "../../hooks/useFormMeetings";
-import {
-  DURATION_OPTIONS,
-  type CreateMeetingFormProps,
-} from "../../types/meeting";
+import { DURATION_OPTIONS, type MeetingFormProps } from "../../types/meeting";
 
 // Componentes de Shadcn UI
 import { Card } from "@/components/ui/card";
@@ -21,10 +18,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export function CreateMeetingForm({
+export function MeetingForm({
+  initialData,
   onSuccess,
   className = "",
-}: CreateMeetingFormProps) {
+}: MeetingFormProps) {
   const {
     register,
     control,
@@ -32,14 +30,12 @@ export function CreateMeetingForm({
     setValue,
     selectedAccess,
     onSubmit,
+    isEdit,
     isPending,
-  } = useFormMeetings({ onSuccess });
+  } = useFormMeetings({ initialData, onSuccess });
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className={`space-y-5 ${className}`}
-    >
+    <form onSubmit={onSubmit} className={`space-y-5 ${className}`}>
       <Card className="p-6 border-border bg-card rounded-2xl shadow-xl space-y-5">
         {/* Nombre de la reunión */}
         <div>
@@ -281,11 +277,11 @@ export function CreateMeetingForm({
           {isPending ? (
             <>
               <RefreshCw className="w-4 h-4 animate-spin" />
-              Creando reunión...
+              {isEdit ? "Guardando cambios..." : "Creando reunión..."}
             </>
           ) : (
             <>
-              Crear reunión
+              {isEdit ? "Guardar cambios" : "Crear reunión"}
               <ChevronRight className="w-4 h-4" />
             </>
           )}
@@ -295,4 +291,4 @@ export function CreateMeetingForm({
   );
 }
 
-export default CreateMeetingForm;
+export default MeetingForm;

@@ -31,6 +31,21 @@ export function useCreateMeeting() {
 }
 
 /**
+ * Hook para actualizar una reunión
+ */
+export function useUpdateMeeting() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Meeting> }) =>
+      meetingsService.updateMeeting(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: MEETINGS_QUERY_KEY });
+    },
+  });
+}
+
+/**
  * Hook para cancelar una reunión
  */
 export function useCancelMeeting() {

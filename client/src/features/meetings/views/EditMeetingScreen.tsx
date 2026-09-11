@@ -3,23 +3,27 @@ import type { Meeting, Screen } from '../types/meeting';
 import { MeetingForm } from '../components/form/MeetingForm';
 import { MeetingSuccess } from '../components/form/MeetingSuccess';
 
-export interface CreateMeetingScreenProps {
+export interface EditMeetingScreenProps {
+  meeting: Meeting;
   onNav?: (screen: Screen) => void;
 }
 
-type Step = 'form' | 'created';
+type Step = 'form' | 'success';
 
-export default function CreateMeetingScreen({ onNav }: CreateMeetingScreenProps) {
+export default function EditMeetingScreen({
+  meeting,
+  onNav,
+}: EditMeetingScreenProps) {
   const [step, setStep] = useState<Step>('form');
-  const [createdMeeting, setCreatedMeeting] = useState<Meeting | null>(null);
+  const [updatedMeeting, setUpdatedMeeting] = useState<Meeting | null>(null);
 
-  const handleSuccess = (meeting: Meeting) => {
-    setCreatedMeeting(meeting);
-    setStep('created');
+  const handleSuccess = (m: Meeting) => {
+    setUpdatedMeeting(m);
+    setStep('success');
   };
 
-  if (step === 'created' && createdMeeting) {
-    return <MeetingSuccess meeting={createdMeeting} isEdit={false} onNav={onNav} />;
+  if (step === 'success' && updatedMeeting) {
+    return <MeetingSuccess meeting={updatedMeeting} isEdit={true} onNav={onNav} />;
   }
 
   return (
@@ -30,17 +34,17 @@ export default function CreateMeetingScreen({ onNav }: CreateMeetingScreenProps)
             className="text-xl font-bold text-foreground"
             style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}
           >
-            Crear nueva reunión
+            Editar reunión
           </h1>
           <p className="text-sm mt-1 text-muted-foreground">
-            Completa los datos para programar tu reunión
+            Modifica los datos de la reunión programada
           </p>
         </div>
 
-        <MeetingForm onSuccess={handleSuccess} />
+        <MeetingForm initialData={meeting} onSuccess={handleSuccess} />
       </div>
     </div>
   );
 }
 
-export { CreateMeetingScreen };
+export { EditMeetingScreen };

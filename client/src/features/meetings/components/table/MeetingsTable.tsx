@@ -23,6 +23,7 @@ export default function MeetingsTable({
   onNav,
   onCreateMeeting,
   onJoinMeeting,
+  onEditMeeting,
   className = '',
   title = 'Historial de reuniones',
   showCreateButton = true,
@@ -38,7 +39,8 @@ export default function MeetingsTable({
     setFilter,
     handleCreate,
     handleJoin,
-  } = useTableMeetings({ onNav, onCreateMeeting, onJoinMeeting });
+    handleEdit,
+  } = useTableMeetings({ onNav, onCreateMeeting, onJoinMeeting, onEditMeeting });
 
   return (
     <div className={`flex-1 overflow-y-auto p-6 ${className}`}>
@@ -90,6 +92,7 @@ export default function MeetingsTable({
                   key={meeting.id || index}
                   meeting={meeting}
                   onJoin={handleJoin}
+                  onEdit={handleEdit}
                 />
               ))
             )}

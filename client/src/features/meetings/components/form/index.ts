@@ -1,4 +1,4 @@
-export * from './CreateMeetingForm';
-export * from './MeetingCreatedSuccess';
-export { default as CreateMeetingForm } from './CreateMeetingForm';
-export { default as MeetingCreatedSuccess } from './MeetingCreatedSuccess';
+export * from './MeetingForm';
+export * from './MeetingSuccess';
+export { default as MeetingForm } from './MeetingForm';
+export { default as MeetingSuccess } from './MeetingSuccess';

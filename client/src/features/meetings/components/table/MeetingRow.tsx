@@ -16,9 +16,14 @@ import {
 export interface MeetingRowProps {
   meeting: Meeting;
   onJoin: (meeting: Meeting) => void;
+  onEdit?: (meeting: Meeting) => void;
 }
 
-export const MeetingRow = memo(function MeetingRow({ meeting: m, onJoin }: MeetingRowProps) {
+export const MeetingRow = memo(function MeetingRow({
+  meeting: m,
+  onJoin,
+  onEdit,
+}: MeetingRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -56,7 +61,9 @@ export const MeetingRow = memo(function MeetingRow({ meeting: m, onJoin }: Meeti
       <TableCell className="px-4 py-3">
         <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <Users className="w-3.5 h-3.5 opacity-70" />
-          {m.participants}
+          {Array.isArray(m.participants)
+            ? m.participants.length
+            : (m.participants ?? 0)}
         </span>
       </TableCell>
 
@@ -100,6 +107,17 @@ export const MeetingRow = memo(function MeetingRow({ meeting: m, onJoin }: Meeti
                 >
                   Ver detalles
                 </DropdownMenuItem>
+                {onEdit && m.status !== 'cancelled' && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onEdit(m);
+                    }}
+                    className="cursor-pointer hover:bg-white/[0.06] text-xs"
+                  >
+                    Editar reunión
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   onClick={() => {
                     setMenuOpen(false);

@@ -13,7 +13,7 @@ export interface Meeting {
   date: string;
   time: string;
   duration: string;
-  participants: number;
+  participants: string[] | number;
   status: MeetingStatus;
   roomUrl?: string;
   description?: string;
@@ -25,15 +25,19 @@ export interface MeetingsTableProps {
   onNav?: (screen: Screen) => void;
   onCreateMeeting?: () => void;
   onJoinMeeting?: (meeting: Meeting) => void;
+  onEditMeeting?: (meeting: Meeting) => void;
   className?: string;
   title?: string;
   showCreateButton?: boolean;
 }
 
-export interface CreateMeetingFormProps {
+export interface MeetingFormProps {
+  initialData?: Meeting;
   onSuccess: (meeting: Meeting) => void;
   className?: string;
 }
+
+export type CreateMeetingFormProps = MeetingFormProps;
 
 export const statusLabel: Record<MeetingStatus, string> = {
   live: 'En vivo',
