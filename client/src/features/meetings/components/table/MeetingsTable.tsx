@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useTableMeetings } from '../../hooks/useTableMeetings';
-import type { MeetingsTableProps } from '../../types/meeting';
+import { useCancelMeeting } from '../../hooks/useMeetings';
+import type { Meeting, MeetingsTableProps } from '../../types/meeting';
 
 // Subcomponentes modulares de la tabla
 import { MeetingsHeader } from './MeetingsHeader';
 import { MeetingsFilters } from './MeetingsFilters';
 import { MeetingRow } from './MeetingRow';
 import { MeetingsEmptyState } from './MeetingsEmptyState';
+import { CancelMeetingDialog } from './CancelMeetingDialog';
 
 // Componentes de Shadcn UI
 import {
@@ -24,10 +27,32 @@ export default function MeetingsTable({
   onCreateMeeting,
   onJoinMeeting,
   onEditMeeting,
+  onCancelMeeting,
   className = '',
   title = 'Historial de reuniones',
   showCreateButton = true,
 }: MeetingsTableProps) {
+  const [meetingToCancel, setMeetingToCancel] = useState<Meeting | null>(null);
+  const cancelMutation = useCancelMeeting();
+
+  const handleRowCancel = (meeting: Meeting) => {
+    if (onCancelMeeting) {
+      onCancelMeeting(meeting);
+    } else {
+      setMeetingToCancel(meeting);
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!meetingToCancel?.id) return;
+    try {
+      await cancelMutation.mutateAsync(meetingToCancel.id);
+      setMeetingToCancel(null);
+    } catch (err) {
+      console.error('Error al cancelar la reunión:', err);
+    }
+  };
+
   const {
     filteredMeetings,
     isLoading,
@@ -40,7 +65,14 @@ export default function MeetingsTable({
     handleCreate,
     handleJoin,
     handleEdit,
-  } = useTableMeetings({ onNav, onCreateMeeting, onJoinMeeting, onEditMeeting });
+    handleCancel,
+  } = useTableMeetings({
+    onNav,
+    onCreateMeeting,
+    onJoinMeeting,
+    onEditMeeting,
+    onCancelMeeting: handleRowCancel,
+  });
 
   return (
     <div className={`flex-1 overflow-y-auto p-6 ${className}`}>
@@ -93,6 +125,7 @@ export default function MeetingsTable({
                   meeting={meeting}
                   onJoin={handleJoin}
                   onEdit={handleEdit}
+                  onCancel={handleCancel}
                 />
               ))
             )}
@@ -102,6 +135,17 @@ export default function MeetingsTable({
         {/* 4. Estado vacío si no hay coincidencias */}
         {!isLoading && filteredMeetings.length === 0 && <MeetingsEmptyState />}
       </Card>
+
+      {/* 5. Modal de confirmación para cancelar reunión con Shadcn AlertDialog */}
+      <CancelMeetingDialog
+        meeting={meetingToCancel}
+        open={Boolean(meetingToCancel)}
+        onOpenChange={(open) => {
+          if (!open) setMeetingToCancel(null);
+        }}
+        onConfirm={handleConfirmCancel}
+        isPending={cancelMutation.isPending}
+      />
     </div>
   );
 }

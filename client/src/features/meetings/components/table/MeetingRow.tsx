@@ -17,12 +17,14 @@ export interface MeetingRowProps {
   meeting: Meeting;
   onJoin: (meeting: Meeting) => void;
   onEdit?: (meeting: Meeting) => void;
+  onCancel?: (meeting: Meeting) => void;
 }
 
 export const MeetingRow = memo(function MeetingRow({
   meeting: m,
   onJoin,
   onEdit,
+  onCancel,
 }: MeetingRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -130,8 +132,11 @@ export const MeetingRow = memo(function MeetingRow({
                 {m.status !== 'cancelled' && (
                   <DropdownMenuItem
                     variant="destructive"
-                    onClick={() => setMenuOpen(false)}
-                    className="cursor-pointer text-xs"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onCancel?.(m);
+                    }}
+                    className="cursor-pointer text-xs text-destructive focus:text-destructive"
                   >
                     Cancelar reunión
                   </DropdownMenuItem>

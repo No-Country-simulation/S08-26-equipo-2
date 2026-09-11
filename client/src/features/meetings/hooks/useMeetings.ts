@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { meetingsService, DEFAULT_MEETINGS } from "../services/meetingsService";
+import { meetingsService, DEFAULT_MEETINGS } from "../services/meetings.service";
 import type { Meeting } from "../types/meeting";
 
 export const MEETINGS_QUERY_KEY = ["meetings"] as const;

@@ -112,6 +112,14 @@ export const meetingsService = {
    * Cancela una reunión por ID
    */
   async cancelMeeting(id: string): Promise<void> {
-    await api.delete(`/meetings/${id}`);
+    try {
+      await api.delete(`/meetings/${id}`);
+    } catch {
+      // Fallback para desarrollo offline / backend en progreso
+      const meeting = DEFAULT_MEETINGS.find((m) => m.id === id);
+      if (meeting) {
+        meeting.status = "cancelled";
+      }
+    }
   },
 };

@@ -26,6 +26,7 @@ export interface MeetingsTableProps {
   onCreateMeeting?: () => void;
   onJoinMeeting?: (meeting: Meeting) => void;
   onEditMeeting?: (meeting: Meeting) => void;
+  onCancelMeeting?: (meeting: Meeting) => void;
   className?: string;
   title?: string;
   showCreateButton?: boolean;

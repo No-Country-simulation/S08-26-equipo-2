@@ -11,13 +11,14 @@ export interface UseTableMeetingsOptions {
   onCreateMeeting?: MeetingsTableProps["onCreateMeeting"];
   onJoinMeeting?: MeetingsTableProps["onJoinMeeting"];
   onEditMeeting?: MeetingsTableProps["onEditMeeting"];
+  onCancelMeeting?: MeetingsTableProps["onCancelMeeting"];
 }
 
 /**
  * Hook para encapsular la lógica de filtrado, búsqueda, estado y navegación de la tabla de reuniones
  */
 export function useTableMeetings(options: UseTableMeetingsOptions = {}) {
-  const { onNav, onCreateMeeting, onJoinMeeting, onEditMeeting } = options;
+  const { onNav, onCreateMeeting, onJoinMeeting, onEditMeeting, onCancelMeeting } = options;
   const { data: meetings = [], isLoading, isFetching, refetch } = useMeetings();
 
   const [query, setQuery] = useState("");
@@ -52,6 +53,15 @@ export function useTableMeetings(options: UseTableMeetingsOptions = {}) {
     },
     [onEditMeeting],
   );
+
+  const handleCancel = useCallback(
+    (meeting: Meeting) => {
+      if (onCancelMeeting) {
+        onCancelMeeting(meeting);
+      }
+    },
+    [onCancelMeeting],
+  );
   
   const filteredMeetings = useMemo(() => {
     const cleanQuery = deferredQuery.toLowerCase().trim();
@@ -76,5 +86,6 @@ export function useTableMeetings(options: UseTableMeetingsOptions = {}) {
     handleCreate,
     handleJoin,
     handleEdit,
+    handleCancel,
   };
 }
