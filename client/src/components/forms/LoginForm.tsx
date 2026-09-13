@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import {
   Field,
   FieldError,
@@ -19,6 +20,7 @@ import { Link } from "react-router-dom";
 import { loginApi } from "@/services/auth/authServices";
 
 export function LoginForm() {
+const navigate = useNavigate();
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
 
@@ -37,7 +39,7 @@ export function LoginForm() {
         //const response = await loginApi(data)
         //hacer un redirect 
         //guardar la informacion (token) del usuario en Zustand o en localStorage 
-        //navegaion home
+        navigate("/");
         console.log("Usuario logueado:", data);
     } catch (error) {
         //crear un toast para manejo de errores

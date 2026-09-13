@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import {
   Field,
   FieldError,
@@ -17,6 +18,7 @@ import EmailDivition from "./EmailDivition";
 import { PasswordInput } from "../ui/password-input";
 import { signupApi } from "@/services/auth/authServices";
 export function SignupForm() {
+  const navigate = useNavigate();
   const form = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
 
@@ -35,6 +37,7 @@ export function SignupForm() {
       // guardar en Zustand o localStorage
      //console.log("Usuario registrado:", response);
       // redirigir 
+        navigate("/");
         console.log("Usuario logueado:", data);
 //bloquear el boton mientras se hace la peticion
  
