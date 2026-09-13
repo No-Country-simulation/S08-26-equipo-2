@@ -10,9 +10,8 @@ import { queryClient } from "./lib/queryClient.ts";
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      
       <App />
-      </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,
 );
