@@ -16,7 +16,7 @@ import Spacing from "../Spacing";
 import { LoginToggle } from "./LoginToggle";
 import EmailDivition from "./EmailDivition";
 import { PasswordInput } from "../ui/password-input";
-import { signupApi } from "@/services/auth/authServices";
+// import { signupApi } from "@/services/auth/authServices";
 export function SignupForm() {
   const navigate = useNavigate();
   const form = useForm<SignupFormData>({

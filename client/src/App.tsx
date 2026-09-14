@@ -7,6 +7,8 @@ import ForgotPassword from "./views-auth/ForgotPassword";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Home from "./views/Home";
 import { PanelLayout } from "./components/panel/PanelLayout";
+import { HistoryScreen, CreateMeetingScreen, EditMeetingScreen } from "./features/meetings";
+
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -21,15 +23,9 @@ const router = createBrowserRouter([
     element: <ForgotPassword />,
   },
   {
-    path: "*",
-    element: <NotFound />,
-  },
-  {
     path: "/livekit",
     element: <LivekitPage />,
   },
-
-  
   {
     element: <PanelLayout />,
     children: [
@@ -37,7 +33,23 @@ const router = createBrowserRouter([
         path: "/",
         element: <Home />,
       },
+      {
+        path: "/meetings",
+        element: <HistoryScreen />,
+      },
+      {
+        path: "/meetings/create",
+        element: <CreateMeetingScreen />,
+      },
+      {
+        path: "/meetings/edit/:id",
+        element: <EditMeetingScreen />,
+      },
     ],
+  },
+  {
+    path: "*",
+    element: <NotFound />,
   },
 ]);
 
