@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Meeting, Screen } from '../types/meeting';
 import { MeetingForm } from '../components/form/MeetingForm';
 import { MeetingSuccess } from '../components/form/MeetingSuccess';
@@ -10,8 +11,21 @@ export interface CreateMeetingScreenProps {
 type Step = 'form' | 'created';
 
 export default function CreateMeetingScreen({ onNav }: CreateMeetingScreenProps) {
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>('form');
   const [createdMeeting, setCreatedMeeting] = useState<Meeting | null>(null);
+
+  const handleNav = (screen: Screen) => {
+    if (onNav) {
+      onNav(screen);
+      return;
+    }
+    if (screen === 'dashboard' || screen === 'history') {
+      navigate('/meetings');
+    } else if (screen === 'video-room') {
+      navigate('/livekit');
+    }
+  };
 
   const handleSuccess = (meeting: Meeting) => {
     setCreatedMeeting(meeting);
@@ -19,7 +33,7 @@ export default function CreateMeetingScreen({ onNav }: CreateMeetingScreenProps)
   };
 
   if (step === 'created' && createdMeeting) {
-    return <MeetingSuccess meeting={createdMeeting} isEdit={false} onNav={onNav} />;
+    return <MeetingSuccess meeting={createdMeeting} isEdit={false} onNav={handleNav} />;
   }
 
   return (

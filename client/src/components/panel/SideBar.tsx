@@ -1,11 +1,21 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Video } from "lucide-react";
+import { LayoutDashboard, Video, Calendar, PlusCircle } from "lucide-react";
 
 const items = [
   {
     label: "Inicio",
     href: "/",
     icon: LayoutDashboard,
+  },
+  {
+    label: "Crear reunión",
+    href: "/meetings/create",
+    icon: PlusCircle,
+  },
+  {
+    label: "Historial",
+    href: "/meetings",
+    icon: Calendar,
   },
 ];
 
@@ -38,6 +48,7 @@ export function Sidebar() {
             <NavLink
               key={item.href}
               to={item.href}
+              end
               className={({ isActive }) =>
                 [
                   "flex h-14 items-center gap-4 rounded-xl px-4",

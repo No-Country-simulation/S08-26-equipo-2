@@ -17,6 +17,18 @@ export function useMeetings(initialData?: Meeting[]) {
 }
 
 /**
+ * Hook para consultar una reunión por su ID
+ */
+export function useMeeting(id?: string) {
+  return useQuery({
+    queryKey: [...MEETINGS_QUERY_KEY, id],
+    queryFn: () => (id ? meetingsService.getMeetingById(id) : undefined),
+    enabled: Boolean(id),
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+/**
  * Hook para crear una nueva reunión
  */
 export function useCreateMeeting() {
