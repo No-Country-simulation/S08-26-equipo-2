@@ -37,11 +37,13 @@ client/
 │   │   ├── meetings/
 │   │   ├── roles-permissions/
 │   │   ├── screen-share/
+│   │   ├── settings/
 │   │   └── video-conference/
 │   ├── hooks/               # Hooks de React genéricos y transversales
 │   ├── lib/                 # Configuración de librerías de terceros (QueryClient, utilidades)
 │   ├── services/            # Servicios centrales globales (API client base, sockets globales)
 │   ├── stores/              # Stores globales de estado con Zustand
+│   ├── tests/               # Pruebas generales, integración global y setup transversal (con .gitkeep)
 │   ├── types/               # Tipos e interfaces globales de TypeScript
 │   ├── views/               # Páginas o vistas principales de la aplicación
 │   ├── App.tsx              # Componente raíz y orquestador
@@ -67,6 +69,7 @@ Estas carpetas alojan elementos transversales o compartidos por múltiples funci
 | `lib/` | Inicializaciones e integraciones de librerías externas (ej. cliente de TanStack Query, función `cn` para clases de Tailwind). |
 | `services/` | Servicios globales y capa base de comunicación externa (cliente HTTP base, manejador general de WebSocket). |
 | `stores/` | Stores globales con Zustand para gestionar estado transversal a toda la aplicación. |
+| `tests/` | Pruebas de integración global, smoke tests transversales y utilidades compartidas de testing. |
 | `types/` | Definiciones globales de TypeScript, modelos compartidos y tipos de utilidad general. |
 | `views/` | Vistas / páginas que ensamblan y componen las diferentes features para ser consumidas por el router. |
 
@@ -112,6 +115,20 @@ La carpeta `src/features/` está organizada según las **11 Épicas** del Backlo
 | `history/` | **ÉPICA 11: Historial** | US-035 a US-036 | Consulta de reuniones pasadas y detalle de información histórica (fechas, duración, asistentes). |
 
 > **Nota para Git**: Cada subcarpeta contiene un archivo `.gitkeep` para asegurar que las carpetas vacías sean rastreadas y subidas correctamente al repositorio remoto.
+
+---
+
+## 🧪 Estrategia de Testing
+
+MeetFlow organiza las pruebas automatizadas en dos niveles según **Screaming Architecture**:
+
+1. **Co-localización (Colocation) en `src/`**:
+   - **Dónde va**: Las pruebas unitarias y de componentes se colocan **al lado del archivo fuente** que evalúan (ej. `LoginForm.test.tsx` junto a `LoginForm.tsx`, o `useAuth.test.ts` junto a `useAuth.ts`), tanto dentro de `src/features/<feature>/` como en `src/components/`.
+   - **Propósito**: Garantizar la autonomía de cada módulo. Si se traslada, refactoriza o elimina una funcionalidad o componente, sus pruebas se mueven o eliminan con él sin dejar código huérfano.
+
+2. **Carpeta General `src/tests/`**:
+   - **Dónde va**: En `src/tests/` (inicializada con `.gitkeep`).
+   - **Propósito**: Pruebas transversales y globales que no pertenecen a una sola feature (smoke tests de la aplicación completa, pruebas de integración entre múltiples módulos, configuración global de entorno y utilidades de prueba compartidas).
 
 ---
 
@@ -190,3 +207,6 @@ En el directorio del proyecto, puedes ejecutar:
 - `npm run build` / `pnpm build`: Compila TypeScript y genera el bundle de producción en `dist/`.
 - `npm run lint` / `pnpm lint`: Ejecuta ESLint para verificar calidad de código.
 - `npm run preview` / `pnpm preview`: Previsualiza el bundle de producción localmente.
+- `npm run test` / `pnpm test`: Ejecuta Vitest para verificar tests.
+- `npm run test:ui` / `pnpm test:ui`: Ejecuta Vitest para verificar tests en modo UI.
+- `npm run coverage` / `pnpm coverage`: Ejecuta Vitest para verificar cobertura de tests.
