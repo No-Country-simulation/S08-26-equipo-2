@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Video, Calendar, PlusCircle } from "lucide-react";
+import { LayoutDashboard, Video, Calendar, PlusCircle, Settings } from "lucide-react";
 
 const items = [
   {
@@ -16,6 +16,11 @@ const items = [
     label: "Historial",
     href: "/meetings",
     icon: Calendar,
+  },
+  {
+    label: "Configuración",
+    href: "/settings",
+    icon: Settings,
   },
 ];
 
