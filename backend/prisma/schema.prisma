@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum MeetingStatus {
+  SCHEDULED
+  IN_PROGRESS
+  FINISHED
+  CANCELLED
+
+  @@map("meeting_status_enum")
+}
+
+enum AccessRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@map("access_request_status_enum")
+}
+
+enum ConnectionStatus {
+  WAITING_ROOM
+  CONNECTED
+  RECONNECTING
+  DISCONNECTED
+  LEFT
+
+  @@map("connection_status_enum")
+}
+
+enum UserRole {
+  HOST
+  CO_HOST
+  PARTICIPANT
+
+  @@map("user_role_enum")
+}
+
+enum AccessType {
+  PUBLIC_LINK
+  INVITE_ONLY
+
+  @@map("access_type_enum")
+}
+
+// ============================================================================
+// 1. MÓDULO: Autenticación y Usuarios
+// ============================================================================
+
+model User {
+  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid @map("id")
+  fullName         String   @map("full_name")
+  email            String   @unique @map("email")
+  passwordHash     String   @map("password_hash")
+  refreshTokenHash String?  @map("refresh_token_hash")
+  avatarUrl        String?  @map("avatar_url")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  meetingsHosted            Meeting[]              @relation("MeetingHost")
+  accessRequests            AccessRequest[]        @relation("AccessRequestUser")
+  accessRequestsProcessed   AccessRequest[]        @relation("AccessRequestProcessor")
+  meetingParticipants       MeetingParticipant[]
+  chatMessages              ChatMessage[]
+
+  @@index([email], map: "idx_users_email")
+  @@map("users")
+}
+
+// ============================================================================
+// 2. MÓDULO: Reuniones y Agenda
+// ============================================================================
+
+model Meeting {
+  id                      String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid @map("id")
+  code                    String        @unique @map("code")
+  title                   String        @map("title")
+  description             String?       @map("description")
+  hostId                  String        @map("host_id") @db.Uuid
+  status                  MeetingStatus @default(SCHEDULED) @map("status")
+  scheduledStartAt        DateTime?     @map("scheduled_start_at") @db.Timestamptz(6)
+  scheduledEndAt          DateTime?     @map("scheduled_end_at") @db.Timestamptz(6)
+  actualStartAt           DateTime?     @map("actual_start_at") @db.Timestamptz(6)
+  actualEndAt             DateTime?     @map("actual_end_at") @db.Timestamptz(6)
+  estimatedDurationMinutes Int?         @default(60) @map("estimated_duration_minutes")
+  accessType              AccessType    @default(PUBLIC_LINK) @map("access_type")
+  requiresHostApproval    Boolean       @default(true) @map("requires_host_approval")
+  createdAt               DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  host          User                  @relation("MeetingHost", fields: [hostId], references: [id], onDelete: Cascade)
+  accessRequests AccessRequest[]
+  participants  MeetingParticipant[]
+  chatMessages  ChatMessage[]
+  invitations   MeetingInvitation[]
+
+  @@index([hostId], map: "idx_meetings_host")
+  @@index([code], map: "idx_meetings_code")
+  @@index([status], map: "idx_meetings_status")
+  @@index([scheduledStartAt, status], map: "idx_meetings_schedule")
+  @@map("meetings")
+}
+
+// ============================================================================
+// 3. MÓDULO: Solicitudes de Ingreso / Sala de Espera
+// ============================================================================
+
+model AccessRequest {
+  id           String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid @map("id")
+  meetingId    String              @map("meeting_id") @db.Uuid
+  userId       String              @map("user_id") @db.Uuid
+  status       AccessRequestStatus @default(PENDING) @map("status")
+  processedBy  String?             @map("processed_by") @db.Uuid
+  requestedAt  DateTime            @default(now()) @map("requested_at") @db.Timestamptz(6)
+  processedAt  DateTime?           @map("processed_at") @db.Timestamptz(6)
+
+  meeting     Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user        User    @relation("AccessRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  processedByUser User? @relation("AccessRequestProcessor", fields: [processedBy], references: [id], onDelete: NoAction)
+
+  @@index([meetingId, status], map: "idx_access_requests_meeting")
+  @@map("access_requests")
+}
+
+// ============================================================================
+// 4. MÓDULO: Participantes, Roles, Medios y Conectividad
+// ============================================================================
+
+model MeetingParticipant {
+  id               String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid @map("id")
+  meetingId        String           @map("meeting_id") @db.Uuid
+  userId           String           @map("user_id") @db.Uuid
+  role             UserRole         @default(PARTICIPANT) @map("role")
+  connectionStatus ConnectionStatus @default(WAITING_ROOM) @map("connection_status")
+  lastPingAt       DateTime         @default(now()) @map("last_ping_at") @db.Timestamptz(6)
+  isMicOn          Boolean          @default(false) @map("is_mic_on")
+  isCameraOn       Boolean          @default(false) @map("is_camera_on")
+  isScreenSharing  Boolean          @default(false) @map("is_screen_sharing")
+  joinedAt         DateTime?        @map("joined_at") @db.Timestamptz(6)
+  leftAt           DateTime?        @map("left_at") @db.Timestamptz(6)
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId], map: "unique_user_per_meeting")
+  @@index([meetingId], map: "idx_participants_meeting")
+  @@index([userId], map: "idx_participants_user")
+  @@index([meetingId, connectionStatus], map: "idx_participants_status")
+  @@map("meeting_participants")
+}
+
+// ============================================================================
+// 5. MÓDULO: Chat e Historial de Mensajes
+// ============================================================================
+
+model ChatMessage {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid @map("id")
+  meetingId String   @map("meeting_id") @db.Uuid
+  senderId  String   @map("sender_id") @db.Uuid
+  message   String   @map("message")
+  sentAt    DateTime @default(now()) @map("sent_at") @db.Timestamptz(6)
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  sender  User    @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId, sentAt], map: "idx_chat_messages_meeting")
+  @@map("chat_messages")
+}
+
+// ============================================================================
+// 6. MÓDULO: Invitaciones
+// ============================================================================
+
+model MeetingInvitation {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid @map("id")
+  meetingId String   @map("meeting_id") @db.Uuid
+  email     String   @map("email")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, email], map: "unique_email_per_meeting")
+  @@index([email], map: "idx_meeting_invitations_email")
+  @@map("meeting_invitations")
+}
