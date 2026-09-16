@@ -8,6 +8,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Home from "./views/Home";
 import { PanelLayout } from "./components/panel/PanelLayout";
 import { HistoryScreen, CreateMeetingScreen, EditMeetingScreen } from "./features/meetings";
+import { SettingsScreen } from "./features/settings";
 
 const router = createBrowserRouter([
   {
@@ -44,6 +45,10 @@ const router = createBrowserRouter([
       {
         path: "/meetings/edit/:id",
         element: <EditMeetingScreen />,
+      },
+      {
+        path: "/settings",
+        element: <SettingsScreen />,
       },
     ],
   },
