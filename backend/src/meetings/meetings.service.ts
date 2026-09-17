@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { MeetingStatus } from '@prisma/client';
+import { MeetingStatus, ConnectionStatus } from '@prisma/client';
 import { CreateMeetingDto } from './dto/create-meeting.dto.js';
 
 @Injectable()
@@ -42,10 +42,48 @@ export class MeetingsService {
       },
       include: {
         participants: {
-          include: { user: true },
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
+          },
         },
       },
       orderBy: { actualEndAt: 'desc' },
+    });
+  }
+
+  // Cerrar una reunión: la marca como finalizada
+  async close(id: string, hostId: string) {
+    const meeting = await this.prisma.meeting.findUnique({ where: { id } });
+    if (!meeting) throw new NotFoundException('Reunión no encontrada');
+    if (meeting.hostId !== hostId) {
+      throw new ForbiddenException('Solo el host puede cerrar la reunión');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const closed = await tx.meeting.update({
+        where: { id },
+        data: {
+          status: MeetingStatus.FINISHED,
+          actualEndAt: new Date(),
+        },
+      });
+
+      await tx.meetingParticipant.updateMany({
+        where: { meetingId: id, leftAt: null },
+        data: {
+          leftAt: new Date(),
+          connectionStatus: ConnectionStatus.LEFT,
+        },
+      });
+
+      return closed;
     });
   }
 
@@ -53,7 +91,20 @@ export class MeetingsService {
   async findOne(id: string) {
     const meeting = await this.prisma.meeting.findUnique({
       where: { id },
-      include: { participants: { include: { user: true } } },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
+          },
+        },
+      },
     });
     if (!meeting) throw new NotFoundException('Reunión no encontrada');
     return meeting;

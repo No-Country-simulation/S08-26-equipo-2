@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   UseGuards,
@@ -32,6 +33,12 @@ export class MeetingsController {
   @Get('history')
   findHistory(@CurrentUser() user: any) {
     return this.meetingsService.findHistory(user.id);
+  }
+
+  // Cerrar una reunión
+  @Patch(':id/close')
+  close(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.meetingsService.close(id, user.id);
   }
 
   // Detalle de una reunión puntual
