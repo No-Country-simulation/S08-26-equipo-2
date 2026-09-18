@@ -1,5 +1,13 @@
-import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Video, Calendar, PlusCircle, Settings } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard,
+  Video,
+  Calendar,
+  PlusCircle,
+  Settings,
+  LogOut,
+} from "lucide-react";
+import { useAuthStore } from "@/features/auth";
 
 const items = [
   {
@@ -25,6 +33,23 @@ const items = [
 ];
 
 export function Sidebar() {
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/auth");
+  };
+
+  const initials = user?.fullName
+    ? user.fullName
+        .split(" ")
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "U";
+
   return (
     <aside
       className="
@@ -75,19 +100,30 @@ export function Sidebar() {
       <div className="flex-1" />
 
       {/* Usuario */}
-      <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-4">
+      <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-3">
         <div className="flex items-center gap-3">
-          <div className="flex size-11 items-center justify-center rounded-full bg-indigo-500 font-semibold text-white">
-            AG
+          <div className="flex size-10 items-center justify-center rounded-full bg-indigo-500 font-semibold text-white text-sm shrink-0">
+            {initials}
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate font-medium text-slate-200">Ana García</p>
+            <p className="truncate font-medium text-slate-200 text-sm">
+              {user?.fullName || "Usuario"}
+            </p>
 
-            <p className="truncate text-sm text-slate-500">ana@empresa.com</p>
+            <p className="truncate text-xs text-slate-400">
+              {user?.email || "Sin correo"}
+            </p>
           </div>
 
-          <div className="size-2.5 rounded-full bg-emerald-400" />
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Cerrar sesión"
+            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </aside>

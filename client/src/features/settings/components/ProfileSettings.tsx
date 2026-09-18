@@ -6,9 +6,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAuthStore } from "@/features/auth";
 
 export function ProfileSettings() {
   const [saved, setSaved] = useState(false);
+  const user = useAuthStore((state) => state.user);
+
+  const nameParts = (user?.fullName || "Ana García").split(" ");
+  const firstName = nameParts[0] || "";
+  const lastName = nameParts.slice(1).join(" ") || "";
+  const email = user?.email || "ana@empresa.com";
+
+  const initials = user?.fullName
+    ? user.fullName
+        .split(" ")
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "AG";
 
   const {
     register,
@@ -16,11 +32,11 @@ export function ProfileSettings() {
     formState: { errors },
   } = useForm<ProfileFormData>({
     defaultValues: {
-      firstName: "Ana",
-      lastName: "García",
-      email: "ana@empresa.com",
+      firstName,
+      lastName,
+      email,
       role: "Product Manager",
-      organization: "Empresa S.A.",
+      organization: "MeetFlow Team",
     },
   });
 
@@ -51,7 +67,7 @@ export function ProfileSettings() {
                 background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
               }}
             >
-              AG
+              {initials}
             </div>
             <button
               type="button"
@@ -66,9 +82,9 @@ export function ProfileSettings() {
               className="font-semibold text-foreground text-base"
               style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
             >
-              Ana García
+              {user?.fullName || "Ana García"}
             </p>
-            <p className="text-xs text-muted-foreground">ana@empresa.com</p>
+            <p className="text-xs text-muted-foreground">{email}</p>
             <Button
               variant="link"
               className="text-xs p-0 h-auto text-primary hover:underline cursor-pointer"

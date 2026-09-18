@@ -1,54 +1,73 @@
+import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import NotFound from "./views/NotFound";
 import LivekitPage from "./views/livekit/LivekitPage";
-import Signup from "./views-auth/Signup";
-import Login from "./views-auth/Login";
-import ForgotPassword from "./views-auth/ForgotPassword";
-
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Home from "./views/Home";
 import { PanelLayout } from "./components/panel/PanelLayout";
-import { HistoryScreen, CreateMeetingScreen, EditMeetingScreen } from "./features/meetings";
+import {
+  HistoryScreen,
+  CreateMeetingScreen,
+  EditMeetingScreen,
+} from "./features/meetings";
 import { SettingsScreen } from "./features/settings";
+import { AuthView, ForgotPasswordView } from "./features/auth";
+import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
 
 const router = createBrowserRouter([
   {
+    path: "/auth",
+    element: (
+      <PublicOnlyRoute>
+        <AuthView />
+      </PublicOnlyRoute>
+    ),
+  },
+  {
     path: "/login",
-    element: <Login />,
+    element: <Navigate to="/auth" replace />,
   },
   {
     path: "/signup",
-    element: <Signup />,
+    element: <Navigate to="/auth?mode=signup" replace />,
   },
   {
     path: "/forgot-password",
-    element: <ForgotPassword />,
+    element: (
+      <PublicOnlyRoute>
+        <ForgotPasswordView />
+      </PublicOnlyRoute>
+    ),
   },
   {
     path: "/livekit",
     element: <LivekitPage />,
   },
   {
-    element: <PanelLayout />,
+    element: <ProtectedRoute />,
     children: [
       {
-        path: "/",
-        element: <Home />,
-      },
-      {
-        path: "/meetings",
-        element: <HistoryScreen />,
-      },
-      {
-        path: "/meetings/create",
-        element: <CreateMeetingScreen />,
-      },
-      {
-        path: "/meetings/edit/:id",
-        element: <EditMeetingScreen />,
-      },
-      {
-        path: "/settings",
-        element: <SettingsScreen />,
+        element: <PanelLayout />,
+        children: [
+          {
+            path: "/",
+            element: <Home />,
+          },
+          {
+            path: "/meetings",
+            element: <HistoryScreen />,
+          },
+          {
+            path: "/meetings/create",
+            element: <CreateMeetingScreen />,
+          },
+          {
+            path: "/meetings/edit/:id",
+            element: <EditMeetingScreen />,
+          },
+          {
+            path: "/settings",
+            element: <SettingsScreen />,
+          },
+        ],
       },
     ],
   },
