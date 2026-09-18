@@ -1,16 +1,14 @@
-import { Button } from "@/components/ui/button";
 import googleIcon from "@/assets/icons/google.svg";
 
 export default function GoogleButton() {
   return (
-    <Button
+    <button
       type="button"
-      variant="outline"
-      className="w-full btn-ghost"
+      className="btn-ghost w-full flex items-center justify-center gap-3 py-2.5 mb-5 text-sm cursor-pointer rounded-lg"
       onClick={() => console.log("Google login click")}
     >
-      <img src={googleIcon} alt="Google" width={20} />
+      <img src={googleIcon} alt="Google" width={18} height={18} />
       Continuar con Google
-    </Button>
+    </button>
   );
 }

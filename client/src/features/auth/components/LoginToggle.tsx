@@ -19,15 +19,23 @@ export function LoginToggle({ mode, onToggle }: LoginToggleProps) {
   };
 
   return (
-    <div className="flex w-full rounded-3xl border border-slate-700 bg-slate-900/70 p-1">
+    <div
+      className="flex w-full mb-6 p-1 rounded-lg"
+      style={{
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid var(--border)",
+      }}
+    >
       <button
         type="button"
         onClick={() => handleToggle("login")}
-        className={`flex-1 rounded-2xl px-4 py-2 text-center text-sm font-medium transition-all duration-200 cursor-pointer ${
-          currentMode === "login"
-            ? "bg-blue-900 text-blue-300 shadow-[0_0_12px_rgba(59,130,246,0.35)]"
-            : "text-slate-500 hover:text-slate-300"
-        }`}
+        className="flex-1 py-2 text-sm font-semibold rounded-md transition-all cursor-pointer"
+        style={{
+          fontFamily: "Plus Jakarta Sans, sans-serif",
+          background: currentMode === "login" ? "rgba(59,130,246,0.2)" : "transparent",
+          color: currentMode === "login" ? "#93c5fd" : "var(--muted-foreground)",
+          border: currentMode === "login" ? "1px solid rgba(59,130,246,0.3)" : "1px solid transparent",
+        }}
       >
         Iniciar sesión
       </button>
@@ -35,11 +43,13 @@ export function LoginToggle({ mode, onToggle }: LoginToggleProps) {
       <button
         type="button"
         onClick={() => handleToggle("signup")}
-        className={`flex-1 rounded-2xl px-4 py-2 text-center text-sm font-medium transition-all duration-200 cursor-pointer ${
-          currentMode === "signup"
-            ? "bg-blue-900 text-blue-300 shadow-[0_0_12px_rgba(59,130,246,0.35)]"
-            : "text-slate-500 hover:text-slate-300"
-        }`}
+        className="flex-1 py-2 text-sm font-semibold rounded-md transition-all cursor-pointer"
+        style={{
+          fontFamily: "Plus Jakarta Sans, sans-serif",
+          background: currentMode === "signup" ? "rgba(59,130,246,0.2)" : "transparent",
+          color: currentMode === "signup" ? "#93c5fd" : "var(--muted-foreground)",
+          border: currentMode === "signup" ? "1px solid rgba(59,130,246,0.3)" : "1px solid transparent",
+        }}
       >
         Registrarse
       </button>
