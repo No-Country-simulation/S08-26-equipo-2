@@ -37,6 +37,7 @@ client/
 │   │   ├── meetings/
 │   │   ├── roles-permissions/
 │   │   ├── screen-share/
+│   │   ├── settings/
 │   │   └── video-conference/
 │   ├── hooks/               # Hooks de React genéricos y transversales
 │   ├── lib/                 # Configuración de librerías de terceros (QueryClient, utilidades)
