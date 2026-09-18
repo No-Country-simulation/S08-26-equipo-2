@@ -7,7 +7,6 @@ import {
   Settings,
   Plus,
   Users,
-  LogOut,
 } from "lucide-react";
 import {
   Sidebar as ShadcnSidebar,
@@ -41,7 +40,7 @@ const items = [
 ] as const;
 
 export function Sidebar({ current, onNav, className }: SidebarProps) {
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -52,14 +51,6 @@ export function Sidebar({ current, onNav, className }: SidebarProps) {
     } else {
       navigate(item.href);
     }
-    if (isMobile) {
-      setOpenMobile(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    navigate("/auth");
     if (isMobile) {
       setOpenMobile(false);
     }
@@ -209,15 +200,6 @@ export function Sidebar({ current, onNav, className }: SidebarProps) {
               style={{ background: "#22c55e" }}
               title="En línea"
             />
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              title="Cerrar sesión"
-              className="p-1 text-slate-400 hover:text-rose-400 hover:bg-slate-700/50 rounded-md transition-colors cursor-pointer"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
           </div>
         </div>
       </SidebarFooter>
