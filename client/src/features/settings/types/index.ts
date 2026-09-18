@@ -16,8 +16,7 @@ export interface SettingsSection {
 }
 
 export interface ProfileFormData {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   role: string;
   organization: string;

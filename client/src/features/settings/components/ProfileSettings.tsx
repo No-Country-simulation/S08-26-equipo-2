@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Camera, Check } from "lucide-react";
+import { Camera } from "lucide-react";
 import type { ProfileFormData } from "../types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,41 +9,48 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuthStore } from "@/features/auth";
 
 export function ProfileSettings() {
-  const [saved, setSaved] = useState(false);
   const user = useAuthStore((state) => state.user);
 
-  const nameParts = (user?.fullName || "Ana García").split(" ");
-  const firstName = nameParts[0] || "";
-  const lastName = nameParts.slice(1).join(" ") || "";
-  const email = user?.email || "ana@empresa.com";
+  const fullName = user?.fullName || "";
+  const email = user?.email || "";
 
   const initials = user?.fullName
     ? user.fullName
-        .split(" ")
+        .trim()
+        .split(/\s+/)
         .map((n) => n[0])
         .slice(0, 2)
         .join("")
         .toUpperCase()
-    : "AG";
+    : "U";
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<ProfileFormData>({
     defaultValues: {
-      firstName,
-      lastName,
+      fullName,
       email,
-      role: "Product Manager",
-      organization: "MeetFlow Team",
+      role: "",
+      organization: "",
     },
   });
 
+  useEffect(() => {
+    if (user) {
+      reset({
+        fullName: user.fullName || "",
+        email: user.email || "",
+        role: "",
+        organization: "",
+      });
+    }
+  }, [user, reset]);
+
   const onSubmit = (data: ProfileFormData) => {
     console.log("Datos de perfil actualizados:", data);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
   };
 
   return (
@@ -82,9 +89,9 @@ export function ProfileSettings() {
               className="font-semibold text-foreground text-base"
               style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
             >
-              {user?.fullName || "Ana García"}
+              {user?.fullName || "Usuario"}
             </p>
-            <p className="text-xs text-muted-foreground">{email}</p>
+            <p className="text-xs text-muted-foreground">{email || "Sin correo"}</p>
             <Button
               variant="link"
               className="text-xs p-0 h-auto text-primary hover:underline cursor-pointer"
@@ -97,58 +104,37 @@ export function ProfileSettings() {
 
       {/* Formulario con React Hook Form y componentes Shadcn */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="firstName" className="text-xs font-semibold text-muted-foreground">
-              Nombre *
-            </Label>
-            <Input
-              id="firstName"
-              placeholder="Nombre"
-              {...register("firstName", { required: "El nombre es obligatorio" })}
-              className={`bg-background border-border ${errors.firstName ? "border-destructive" : ""}`}
-            />
-            {errors.firstName && (
-              <span className="text-[11px] text-destructive">{errors.firstName.message}</span>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="lastName" className="text-xs font-semibold text-muted-foreground">
-              Apellido *
-            </Label>
-            <Input
-              id="lastName"
-              placeholder="Apellido"
-              {...register("lastName", { required: "El apellido es obligatorio" })}
-              className={`bg-background border-border ${errors.lastName ? "border-destructive" : ""}`}
-            />
-            {errors.lastName && (
-              <span className="text-[11px] text-destructive">{errors.lastName.message}</span>
-            )}
-          </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="fullName" className="text-xs font-semibold text-muted-foreground">
+            Nombre completo *
+          </Label>
+          <Input
+            id="fullName"
+            placeholder="Nombre completo"
+            {...register("fullName", { required: "El nombre completo es obligatorio" })}
+            className={`bg-background border-border ${errors.fullName ? "border-destructive" : ""}`}
+          />
+          {errors.fullName && (
+            <span className="text-[11px] text-destructive">{errors.fullName.message}</span>
+          )}
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground">
-            Correo electrónico *
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground">
+              Correo electrónico
+            </Label>
+            <span className="text-[11px] text-muted-foreground/70">No editable</span>
+          </div>
           <Input
             id="email"
             type="email"
             placeholder="Email"
-            {...register("email", {
-              required: "El correo es obligatorio",
-              pattern: {
-                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                message: "Correo electrónico no válido",
-              },
-            })}
-            className={`bg-background border-border ${errors.email ? "border-destructive" : ""}`}
+            disabled
+            readOnly
+            {...register("email")}
+            className="bg-muted/40 border-border text-muted-foreground cursor-not-allowed opacity-75"
           />
-          {errors.email && (
-            <span className="text-[11px] text-destructive">{errors.email.message}</span>
-          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -158,7 +144,7 @@ export function ProfileSettings() {
             </Label>
             <Input
               id="role"
-              placeholder="Tu cargo"
+              placeholder="Ej. Product Manager"
               {...register("role")}
               className="bg-background border-border"
             />
@@ -170,7 +156,7 @@ export function ProfileSettings() {
             </Label>
             <Input
               id="organization"
-              placeholder="Tu organización"
+              placeholder="Ej. MeetFlow Team"
               {...register("organization")}
               className="bg-background border-border"
             />
@@ -181,12 +167,6 @@ export function ProfileSettings() {
           <Button type="submit" className="btn-primary text-sm px-6 py-2.5 cursor-pointer">
             Guardar cambios
           </Button>
-
-          {saved && (
-            <span className="text-xs text-emerald-400 flex items-center gap-1 font-medium">
-              <Check className="w-4 h-4" /> Cambios guardados correctamente
-            </span>
-          )}
         </div>
       </form>
     </div>
