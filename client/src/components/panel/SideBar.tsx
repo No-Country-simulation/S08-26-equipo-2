@@ -1,44 +1,94 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard,
   Video,
-  Calendar,
-  PlusCircle,
+  LayoutDashboard,
+  CalendarDays,
+  History,
   Settings,
+  Plus,
+  Users,
   LogOut,
 } from "lucide-react";
+import {
+  Sidebar as ShadcnSidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  useSidebar,
+} from "@/components/ui/sidebar";
 import { useAuthStore } from "@/features/auth";
+import type { Screen } from "@/features/meetings/types/meeting";
+import { cn } from "@/lib/utils";
+
+export interface SidebarProps {
+  current?: Screen;
+  onNav?: (s: Screen) => void;
+  className?: string;
+}
 
 const items = [
-  {
-    label: "Inicio",
-    href: "/",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Crear reunión",
-    href: "/meetings/create",
-    icon: PlusCircle,
-  },
-  {
-    label: "Historial",
-    href: "/meetings",
-    icon: Calendar,
-  },
-  {
-    label: "Configuración",
-    href: "/settings",
-    icon: Settings,
-  },
-];
+  { id: "dashboard", label: "Inicio", icon: LayoutDashboard, href: "/" },
+  { id: "create-meeting", label: "Crear reunión", icon: Plus, href: "/meetings/create" },
+  { id: "my-meetings", label: "Mis reuniones", icon: Users, href: "/meetings" },
+  { id: "calendar", label: "Calendario", icon: CalendarDays, href: "/meetings" },
+  { id: "history", label: "Historial", icon: History, href: "/meetings" },
+  { id: "settings", label: "Configuración", icon: Settings, href: "/settings" },
+] as const;
 
-export function Sidebar() {
+export function Sidebar({ current, onNav, className }: SidebarProps) {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  const handleNavigate = (item: (typeof items)[number]) => {
+    if (onNav) {
+      onNav(item.id as Screen);
+    } else {
+      navigate(item.href);
+    }
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
     navigate("/auth");
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
+  const isItemActive = (item: (typeof items)[number], index: number) => {
+    if (current) {
+      return (
+        current === item.id ||
+        (item.id === "history" && index === 4 && current === "history")
+      );
+    }
+    // Determinar activo según ruta de React Router
+    if (item.id === "dashboard") {
+      return location.pathname === "/";
+    }
+    if (item.id === "create-meeting") {
+      return location.pathname === "/meetings/create";
+    }
+    if (item.id === "settings") {
+      return location.pathname === "/settings";
+    }
+    if (item.id === "my-meetings" && location.pathname === "/meetings" && !location.search.includes("tab=history")) {
+      return true;
+    }
+    if (item.id === "history" && location.pathname === "/meetings" && location.search.includes("tab=history")) {
+      return true;
+    }
+    return false;
   };
 
   const initials = user?.fullName
@@ -48,84 +98,131 @@ export function Sidebar() {
         .slice(0, 2)
         .join("")
         .toUpperCase()
-    : "U";
+    : "AG";
 
   return (
-    <aside
-      className="
-        fixed inset-y-0 left-0
-        flex w-[320px] flex-col
-        border-r border-slate-800
-        bg-[#0d1830]
-        px-4 py-6
-        text-slate-300
-      "
+    <ShadcnSidebar
+      collapsible="offcanvas"
+      className={cn(
+        "border-r border-border bg-card flex flex-col shrink-0 [&_[data-slot=sidebar-inner]]:p-[20px_12px] [&_[data-slot=sidebar-inner]]:bg-card",
+        className
+      )}
+      style={{
+        width: "var(--sidebar-width)",
+        background: "var(--card)",
+        borderRight: "1px solid var(--border)",
+      }}
     >
-      <div className="mb-10 flex items-center gap-3 px-3">
-        <div className="flex size-11 items-center justify-center rounded-xl bg-blue-600">
-          <Video className="size-5 text-white" />
-        </div>
-
-        <span className="text-2xl font-semibold text-slate-200">MeetFlow</span>
-      </div>
-
-      {/* Navegación */}
-      <nav className="flex flex-col gap-2">
-        {items.map((item) => {
-          const Icon = item.icon;
-
-          return (
-            <NavLink
-              key={item.href}
-              to={item.href}
-              end
-              className={({ isActive }) =>
-                [
-                  "flex h-14 items-center gap-4 rounded-xl px-4",
-                  "text-base font-medium transition-colors",
-                  isActive
-                    ? "border border-blue-500/40 bg-blue-500/15 text-blue-300"
-                    : "text-slate-500 hover:bg-slate-800/60 hover:text-slate-200",
-                ].join(" ")
-              }
-            >
-              <Icon className="size-5 shrink-0" />
-              <span>{item.label}</span>
-            </NavLink>
-          );
-        })}
-      </nav>
-
-      {/* Ocupa el espacio restante */}
-      <div className="flex-1" />
-
-      {/* Usuario */}
-      <div className="rounded-xl border border-slate-700 bg-slate-800/30 p-3">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-full bg-indigo-500 font-semibold text-white text-sm shrink-0">
-            {initials}
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <p className="truncate font-medium text-slate-200 text-sm">
-              {user?.fullName || "Usuario"}
-            </p>
-
-            <p className="truncate text-xs text-slate-400">
-              {user?.email || "Sin correo"}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            title="Cerrar sesión"
-            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-700/50 rounded-lg transition-colors cursor-pointer"
+      {/* Logo Header */}
+      <SidebarHeader className="p-0">
+        <div className="flex items-center gap-2.5 px-2 mb-6">
+          <div
+            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+            style={{ background: "linear-gradient(135deg, #3b82f6, #1d4ed8)" }}
           >
-            <LogOut className="w-4 h-4" />
-          </button>
+            <Video className="w-4 h-4 text-white" />
+          </div>
+          <span
+            className="text-lg font-bold tracking-tight select-none"
+            style={{
+              fontFamily: "Plus Jakarta Sans, sans-serif",
+              background: "linear-gradient(135deg, #fff, #93c5fd)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+          >
+            MeetFlow
+          </span>
         </div>
-      </div>
-    </aside>
+      </SidebarHeader>
+
+      {/* Navigation Content */}
+      <SidebarContent className="p-0">
+        <SidebarGroup className="p-0">
+          <SidebarGroupContent>
+            <SidebarMenu className="space-y-1">
+              {items.map((item, i) => {
+                const Icon = item.icon;
+                const active = isItemActive(item, i);
+
+                return (
+                  <SidebarMenuItem key={`${item.id}-${i}`}>
+                    <SidebarMenuButton
+                      isActive={active}
+                      onClick={() => handleNavigate(item)}
+                      tooltip={item.label}
+                      className={cn(
+                        "h-10 px-3 rounded-xl text-sm transition-all gap-3 cursor-pointer w-full justify-start",
+                        active
+                          ? "bg-blue-500/15 text-[#93c5fd] border border-blue-500/40 font-semibold shadow-xs"
+                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 font-medium border border-transparent"
+                      )}
+                    >
+                      <Icon
+                        className={cn(
+                          "w-4 h-4 shrink-0 transition-colors",
+                          active ? "text-[#93c5fd]" : "text-slate-400"
+                        )}
+                      />
+                      <span style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
+                        {item.label}
+                      </span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      {/* User Footer */}
+      <SidebarFooter className="p-0 mt-auto">
+        <div
+          className="p-3 rounded-lg border border-border"
+          style={{ background: "rgba(255, 255, 255, 0.03)" }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 select-none shadow-xs"
+              style={{
+                background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+              }}
+            >
+              {initials}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <p
+                className="text-xs font-semibold truncate text-foreground leading-tight"
+                style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
+              >
+                {user?.fullName || "Ana García"}
+              </p>
+              <p className="text-xs truncate text-muted-foreground leading-tight mt-0.5">
+                {user?.email || "ana@empresa.com"}
+              </p>
+            </div>
+
+            <div
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{ background: "#22c55e" }}
+              title="En línea"
+            />
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              title="Cerrar sesión"
+              className="p-1 text-slate-400 hover:text-rose-400 hover:bg-slate-700/50 rounded-md transition-colors cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </SidebarFooter>
+    </ShadcnSidebar>
   );
 }
+
+export default Sidebar;
