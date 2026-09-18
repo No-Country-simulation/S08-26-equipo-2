@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Search, Bell, ChevronDown, Video, LogOut, Settings, User as UserIcon } from "lucide-react";
+import { Search, Bell, ChevronDown, Video, LogOut, Settings } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
