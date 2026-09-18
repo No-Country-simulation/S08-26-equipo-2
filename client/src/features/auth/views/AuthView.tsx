@@ -2,7 +2,6 @@ import { useSearchParams } from "react-router-dom";
 import { LoginForm } from "../components/LoginForm";
 import { SignupForm } from "../components/SignupForm";
 import { Video } from "lucide-react";
-import Spacing from "@/components/Spacing";
 
 export function AuthView() {
   const [searchParams, setSearchParams] = useSearchParams();
