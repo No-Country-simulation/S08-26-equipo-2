@@ -24,7 +24,7 @@ export interface MeetingRowProps {
 export const MeetingRow = memo(function MeetingRow({
   meeting: m,
   onJoin,
-  onEdit,
+  // onEdit,
   onCancel,
   onViewDetails,
 }: MeetingRowProps) {

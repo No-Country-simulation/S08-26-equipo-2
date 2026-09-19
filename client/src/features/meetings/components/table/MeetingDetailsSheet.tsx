@@ -37,7 +37,7 @@ export function MeetingDetailsSheet({
   open,
   onOpenChange,
   onJoin,
-  onEdit,
+  // onEdit,
 }: MeetingDetailsSheetProps) {
   const [copied, setCopied] = useState(false);
   const { data: fullMeeting, isLoading } = useMeeting(
