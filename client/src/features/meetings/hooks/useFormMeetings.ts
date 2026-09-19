@@ -12,7 +12,7 @@ export interface UseFormMeetingsProps {
   onSuccess?: (meeting: Meeting) => void;
 }
 
-const formatDateForInput = (dateStr?: string): string => {
+const formatDateForInput = (dateStr?: string | null): string => {
   if (!dateStr) return new Date().toISOString().split("T")[0];
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
   const parsed = Date.parse(dateStr);
@@ -22,28 +22,23 @@ const formatDateForInput = (dateStr?: string): string => {
   return new Date().toISOString().split("T")[0];
 };
 
-const parseDuration = (duration?: string): string => {
+const formatTimeForInput = (timeOrIso?: string | null): string => {
+  if (!timeOrIso) return "10:00";
+  if (/^\d{2}:\d{2}$/.test(timeOrIso)) return timeOrIso;
+  const parsed = Date.parse(timeOrIso);
+  if (!isNaN(parsed)) {
+    const d = new Date(parsed);
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${hours}:${minutes}`;
+  }
+  return "10:00";
+};
+
+const parseDuration = (duration?: string | null): string => {
   if (!duration) return "60";
   const num = duration.match(/\d+/)?.[0];
   return num || "60";
-};
-
-const formatParticipantsForInput = (
-  participants?: string[] | number
-): string => {
-  if (!participants) return "";
-  if (Array.isArray(participants)) {
-    return participants.join(", ");
-  }
-  return "";
-};
-
-const parseParticipants = (input?: string): string[] => {
-  if (!input) return [];
-  return input
-    .split(",")
-    .map((email) => email.trim())
-    .filter(Boolean);
 };
 
 export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps = {}) {
@@ -52,14 +47,15 @@ export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps
   const updateMutation = useUpdateMeeting();
 
   const getFormValues = (): CreateMeetingFormData => ({
-    name: initialData?.name || "",
-    date: formatDateForInput(initialData?.date),
-    time: initialData?.time || "10:00",
-    duration: parseDuration(initialData?.duration),
+    title: initialData?.title || initialData?.name || "",
+    date: formatDateForInput(initialData?.scheduledStartAt || initialData?.date),
+    time: formatTimeForInput(initialData?.scheduledStartAt || initialData?.time),
+    duration: parseDuration(
+      initialData?.estimatedDurationMinutes
+        ? String(initialData.estimatedDurationMinutes)
+        : initialData?.duration
+    ),
     description: initialData?.description || "",
-    participants: formatParticipantsForInput(initialData?.participants),
-    access: "link",
-    approval: true,
   });
 
   const form = useForm<CreateMeetingFormData>({
@@ -93,40 +89,42 @@ export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps
   const {
     register,
     handleSubmit,
-    watch,
     setValue,
     control,
     formState: { errors },
   } = form;
 
-  const selectedAccess = watch("access");
-
   const onSubmit = async (data: CreateMeetingFormData) => {
     try {
-      const participantsList = parseParticipants(data.participants);
+      const durationMinutes = parseInt(data.duration, 10) || 60;
+      let scheduledStartAt: string | undefined;
+      let scheduledEndAt: string | undefined;
+
+      if (data.date && data.time) {
+        const start = new Date(`${data.date}T${data.time}:00`);
+        if (!isNaN(start.getTime())) {
+          scheduledStartAt = start.toISOString();
+          const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
+          scheduledEndAt = end.toISOString();
+        }
+      }
+
+      const payload = {
+        title: data.title,
+        description: data.description || undefined,
+        scheduledStartAt,
+        scheduledEndAt,
+        estimatedDurationMinutes: durationMinutes,
+      };
 
       if (isEdit && initialData?.id) {
         const updatedMeeting = await updateMutation.mutateAsync({
           id: initialData.id,
-          data: {
-            name: data.name,
-            date: data.date,
-            time: data.time,
-            duration: data.duration,
-            description: data.description,
-            participants: participantsList,
-          },
+          payload,
         });
         onSuccess?.(updatedMeeting);
       } else {
-        const newMeeting = await createMutation.mutateAsync({
-          name: data.name,
-          date: data.date,
-          time: data.time,
-          duration: data.duration,
-          description: data.description,
-          participants: participantsList,
-        });
+        const newMeeting = await createMutation.mutateAsync(payload);
         onSuccess?.(newMeeting);
       }
     } catch (err) {
@@ -140,10 +138,7 @@ export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps
     control,
     errors,
     setValue,
-    watch,
-    handleSubmit,
     onSubmit: handleSubmit(onSubmit),
-    selectedAccess,
     isEdit,
     isPending: isEdit ? updateMutation.isPending : createMutation.isPending,
   };

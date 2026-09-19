@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { MeetingsTable } from "../components";
-import type { Screen } from "../types/meeting";
+import type { Screen, Meeting } from "../types/meeting";
 
 export interface HistoryScreenProps {
   onNav?: (screen: Screen) => void;
@@ -23,11 +23,22 @@ export default function HistoryScreen({ onNav }: HistoryScreenProps) {
     }
   };
 
+  const handleJoinMeeting = (meeting: Meeting) => {
+    if (meeting.id) {
+      navigate(`/meet/${meeting.id}`);
+    } else if (onNav) {
+      onNav("video-room");
+    } else {
+      navigate("/livekit");
+    }
+  };
+
   return (
     <MeetingsTable
+      title="Agenda de reuniones"
       onNav={handleNav}
       onCreateMeeting={() => (onNav ? onNav("create-meeting") : navigate("/meetings/create"))}
-      onJoinMeeting={() => (onNav ? onNav("video-room") : navigate("/livekit"))}
+      onJoinMeeting={handleJoinMeeting}
       onEditMeeting={(meeting) => (onNav ? onNav("edit-meeting") : navigate(`/meetings/edit/${meeting.id}`))}
     />
   );

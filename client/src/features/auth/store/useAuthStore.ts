@@ -8,6 +8,7 @@ import type {
   RegisterCredentials,
 } from "../types";
 import axios from "axios";
+import { queryClient } from "@/lib/queryClient";
 
 export interface AuthState {
   user: AuthUser | null;
@@ -121,6 +122,7 @@ export const useAuthStore = create<AuthState>()(
             error: null,
           });
           localStorage.removeItem("meetflow-auth-session");
+          queryClient.clear();
         }
       },
 

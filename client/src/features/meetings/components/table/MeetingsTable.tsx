@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
 import { useTableMeetings } from '../../hooks/useTableMeetings';
-import { useCancelMeeting } from '../../hooks/useMeetings';
+import { useCloseMeeting } from '../../hooks/useMeetings';
 import type { Meeting, MeetingsTableProps } from '../../types/meeting';
 
 // Subcomponentes modulares de la tabla
@@ -31,12 +32,13 @@ export default function MeetingsTable({
   onCancelMeeting,
   onViewDetailsMeeting,
   className = '',
-  title = 'Historial de reuniones',
+  title = 'Agenda de reuniones',
   showCreateButton = true,
 }: MeetingsTableProps) {
+  const navigate = useNavigate();
   const [meetingToCancel, setMeetingToCancel] = useState<Meeting | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
-  const cancelMutation = useCancelMeeting();
+  const closeMutation = useCloseMeeting();
 
   const handleRowCancel = (meeting: Meeting) => {
     if (onCancelMeeting) {
@@ -54,13 +56,25 @@ export default function MeetingsTable({
     }
   };
 
+  const handleDefaultJoin = (meeting: Meeting) => {
+    if (onJoinMeeting) {
+      onJoinMeeting(meeting);
+    } else if (meeting.id) {
+      navigate(`/meet/${meeting.id}`);
+    } else if (onNav) {
+      onNav('video-room');
+    } else {
+      navigate('/livekit');
+    }
+  };
+
   const handleConfirmCancel = async () => {
     if (!meetingToCancel?.id) return;
     try {
-      await cancelMutation.mutateAsync(meetingToCancel.id);
+      await closeMutation.mutateAsync(meetingToCancel.id);
       setMeetingToCancel(null);
     } catch (err) {
-      console.error('Error al cancelar la reunión:', err);
+      console.error('Error al finalizar la reunión:', err);
     }
   };
 
@@ -74,14 +88,13 @@ export default function MeetingsTable({
     filter,
     setFilter,
     handleCreate,
-    handleJoin,
     handleEdit,
     handleCancel,
     handleViewDetails,
   } = useTableMeetings({
     onNav,
     onCreateMeeting,
-    onJoinMeeting,
+    onJoinMeeting: handleDefaultJoin,
     onEditMeeting,
     onCancelMeeting: handleRowCancel,
     onViewDetailsMeeting: handleRowViewDetails,
@@ -112,7 +125,7 @@ export default function MeetingsTable({
         <Table className="w-full text-left">
           <TableHeader>
             <TableRow className="border-b border-border bg-white/[0.02] hover:bg-transparent">
-              {['Reunión', 'Fecha', 'Hora', 'Duración', 'Participantes', 'Estado', 'Acciones'].map((h) => (
+              {['Reunión', 'Fecha', 'Hora', 'Duración', 'Estado', 'Acciones'].map((h) => (
                 <TableHead
                   key={h}
                   className="px-4 py-3 text-xs font-semibold text-muted-foreground"
@@ -126,17 +139,17 @@ export default function MeetingsTable({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
                   <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
-                  <p className="text-sm">Cargando reuniones...</p>
+                  <p className="text-sm">Cargando agenda...</p>
                 </TableCell>
               </TableRow>
             ) : (
               filteredMeetings.map((meeting, index) => (
                 <MeetingRow
-                  key={meeting.id || index}
+                  key={meeting.id || meeting.code || index}
                   meeting={meeting}
-                  onJoin={handleJoin}
+                  onJoin={handleDefaultJoin}
                   onEdit={handleEdit}
                   onCancel={handleCancel}
                   onViewDetails={handleViewDetails}
@@ -150,7 +163,7 @@ export default function MeetingsTable({
         {!isLoading && filteredMeetings.length === 0 && <MeetingsEmptyState />}
       </Card>
 
-      {/* 5. Modal de confirmación para cancelar reunión con Shadcn AlertDialog */}
+      {/* 5. Modal de confirmación para finalizar reunión */}
       <CancelMeetingDialog
         meeting={meetingToCancel}
         open={Boolean(meetingToCancel)}
@@ -158,17 +171,17 @@ export default function MeetingsTable({
           if (!open) setMeetingToCancel(null);
         }}
         onConfirm={handleConfirmCancel}
-        isPending={cancelMutation.isPending}
+        isPending={closeMutation.isPending}
       />
 
-      {/* 6. Sheet lateral con los detalles completos de la reunión con Shadcn Sheet */}
+      {/* 6. Sheet lateral con los detalles completos de la reunión */}
       <MeetingDetailsSheet
         meeting={selectedMeeting}
         open={Boolean(selectedMeeting)}
         onOpenChange={(open) => {
           if (!open) setSelectedMeeting(null);
         }}
-        onJoin={handleJoin}
+        onJoin={handleDefaultJoin}
         onEdit={handleEdit}
       />
     </div>
