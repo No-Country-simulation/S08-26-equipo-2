@@ -1,5 +1,5 @@
 import { Controller } from "react-hook-form";
-import { Link as LinkIcon, Users, ChevronRight, RefreshCw } from "lucide-react";
+import { ChevronRight, RefreshCw } from "lucide-react";
 import { useFormMeetings } from "../../hooks/useFormMeetings";
 import { DURATION_OPTIONS, type MeetingFormProps } from "../../types/meeting";
 
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -27,8 +26,6 @@ export function MeetingForm({
     register,
     control,
     errors,
-    setValue,
-    selectedAccess,
     onSubmit,
     isEdit,
     isPending,
@@ -37,28 +34,29 @@ export function MeetingForm({
   return (
     <form onSubmit={onSubmit} className={`space-y-5 ${className}`}>
       <Card className="p-6 border-border bg-card rounded-2xl shadow-xl space-y-5">
-        {/* Nombre de la reunión */}
+        {/* Título de la reunión */}
         <div>
           <Label
-            htmlFor="name"
+            htmlFor="title"
             className="block text-xs font-semibold mb-1.5 text-muted-foreground"
             style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
           >
-            Nombre de la reunión *
+            Título de la reunión *
           </Label>
           <Input
-            id="name"
+            id="title"
             placeholder="Ej. Revisión semanal del equipo"
+            maxLength={150}
             className={`w-full py-2.5 px-4 text-sm bg-card border-border ${
-              errors.name
+              errors.title
                 ? "border-destructive focus-visible:ring-destructive/30"
                 : ""
             }`}
-            {...register("name")}
+            {...register("title")}
           />
-          {errors.name && (
+          {errors.title && (
             <p className="text-xs text-destructive mt-1 font-medium">
-              {errors.name.message}
+              {errors.title.message}
             </p>
           )}
         </div>
@@ -120,7 +118,7 @@ export function MeetingForm({
               className="block text-xs font-semibold mb-1.5 text-muted-foreground"
               style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
             >
-              Duración
+              Duración estimada
             </Label>
             <Controller
               control={control}
@@ -167,104 +165,6 @@ export function MeetingForm({
             placeholder="Agenda, objetivos o notas adicionales…"
             className="w-full py-2.5 px-4 text-sm resize-none bg-card border-border"
             {...register("description")}
-          />
-        </div>
-
-        {/* Invitar participantes */}
-        <div>
-          <Label
-            htmlFor="participants"
-            className="block text-xs font-semibold mb-1.5 text-muted-foreground"
-            style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
-          >
-            Invitar participantes
-          </Label>
-          <Input
-            id="participants"
-            placeholder="correo1@empresa.com, correo2@empresa.com…"
-            className="w-full py-2.5 px-4 text-sm bg-card border-border"
-            {...register("participants")}
-          />
-          <p className="text-xs text-muted-foreground/70 mt-1">
-            Separa múltiples correos electrónicos con comas.
-          </p>
-        </div>
-
-        {/* Configuración de Acceso */}
-        <div>
-          <Label
-            className="block text-xs font-semibold mb-2 text-muted-foreground"
-            style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
-          >
-            Configuración de acceso
-          </Label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[
-              {
-                value: "link" as const,
-                icon: LinkIcon,
-                label: "Acceso por enlace",
-                sub: "Cualquiera con el enlace puede unirse",
-              },
-              {
-                value: "invite" as const,
-                icon: Users,
-                label: "Solo invitados",
-                sub: "Solo participantes registrados",
-              },
-            ].map((o) => {
-              const isSelected = selectedAccess === o.value;
-              return (
-                <button
-                  type="button"
-                  key={o.value}
-                  onClick={() =>
-                    setValue("access", o.value, { shouldValidate: true })
-                  }
-                  className={`p-4 rounded-xl text-left transition-all cursor-pointer border ${
-                    isSelected
-                      ? "bg-primary/15 border-primary/50 text-foreground shadow-md"
-                      : "bg-white/[0.02] border-border text-muted-foreground hover:bg-white/[0.04]"
-                  }`}
-                >
-                  <o.icon
-                    className={`w-4 h-4 mb-2 ${isSelected ? "text-primary" : "text-muted-foreground"}`}
-                  />
-                  <p
-                    className="text-xs font-semibold text-foreground"
-                    style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
-                  >
-                    {o.label}
-                  </p>
-                  <p className="text-xs mt-0.5 text-muted-foreground">
-                    {o.sub}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Aprobación manual con Switch de Shadcn */}
-        <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-white/[0.02]">
-          <div className="pr-4">
-            <p
-              className="text-sm font-semibold text-foreground"
-              style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
-            >
-              Aprobación manual del anfitrión
-            </p>
-            <p className="text-xs mt-0.5 text-muted-foreground">
-              El anfitrión debe aprobar a cada participante en sala de espera
-              antes de que ingrese.
-            </p>
-          </div>
-          <Controller
-            name="approval"
-            control={control}
-            render={({ field }) => (
-              <Switch checked={field.value} onCheckedChange={field.onChange} />
-            )}
           />
         </div>
 

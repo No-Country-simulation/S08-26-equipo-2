@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { Clock, Users, Video, MoreHorizontal } from "lucide-react";
+import { Clock, Video, MoreHorizontal, Copy, Check } from "lucide-react";
 import type { Meeting } from "../../types/meeting";
 import { statusClass, statusLabel } from "../../types/meeting";
 
@@ -29,52 +29,59 @@ export const MeetingRow = memo(function MeetingRow({
   onViewDetails,
 }: MeetingRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const displayTitle = m.title || m.name || "Reunión";
+  const meetLink = m.id
+    ? `${window.location.origin}/meet/${m.id}`
+    : (m.roomUrl || `${window.location.origin}/meet`);
+
+  const handleCopyLink = () => {
+    navigator.clipboard?.writeText(meetLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const isLive = m.status === "IN_PROGRESS" || m.status === "live";
+  const isScheduled = m.status === "SCHEDULED" || m.status === "upcoming";
 
   return (
     <TableRow className="hover:bg-white/[0.03] transition-colors group border-b border-border/60 last:border-0">
-      {/* Nombre y tipo */}
+      {/* Nombre y código */}
       <TableCell className="px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary/10 text-primary border border-primary/20">
             <Video className="w-4 h-4" />
           </div>
-          <Button
-            type="button"
-            variant="link"
-            onClick={() => (onViewDetails ? onViewDetails(m) : onJoin(m))}
-            className="text-sm font-semibold text-foreground hover:text-primary transition-colors cursor-pointer text-left"
-            style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
-          >
-            {m.name}
-          </Button>
+          <div className="min-w-0">
+            <Button
+              type="button"
+              variant="link"
+              onClick={() => (onViewDetails ? onViewDetails(m) : onJoin(m))}
+              className="p-0 h-auto text-sm font-semibold text-foreground hover:text-primary transition-colors cursor-pointer text-left block truncate max-w-[200px] sm:max-w-xs"
+              style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
+            >
+              {displayTitle}
+            </Button>
+          </div>
         </div>
       </TableCell>
 
       {/* Fecha */}
       <TableCell className="px-4 py-3 text-sm text-muted-foreground">
-        {m.date}
+        {m.date || "Por definir"}
       </TableCell>
 
       {/* Hora */}
       <TableCell className="px-4 py-3 text-sm text-muted-foreground">
-        {m.time}
+        {m.time || "--:--"}
       </TableCell>
 
       {/* Duración */}
       <TableCell className="px-4 py-3">
         <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <Clock className="w-3.5 h-3.5 opacity-70" />
-          {m.duration}
-        </span>
-      </TableCell>
-
-      {/* Participantes */}
-      <TableCell className="px-4 py-3">
-        <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
-          <Users className="w-3.5 h-3.5 opacity-70" />
-          {Array.isArray(m.participants)
-            ? m.participants.length
-            : (m.participants ?? 0)}
+          {m.duration || "60 min"}
         </span>
       </TableCell>
 
@@ -82,16 +89,18 @@ export const MeetingRow = memo(function MeetingRow({
       <TableCell className="px-4 py-3">
         <Badge
           variant="outline"
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${statusClass[m.status] || "badge-blue"}`}
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+            statusClass[m.status] || "badge-blue"
+          }`}
         >
           {statusLabel[m.status] || m.status}
         </Badge>
       </TableCell>
 
-      {/* Acciones con Button y DropdownMenu */}
+      {/* Acciones */}
       <TableCell className="px-4 py-3">
         <div className="flex items-center gap-2">
-          {m.status === "live" && (
+          {(isLive || isScheduled) && (
             <Button
               size="sm"
               onClick={() => onJoin(m)}
@@ -100,6 +109,7 @@ export const MeetingRow = memo(function MeetingRow({
               Unirse
             </Button>
           )}
+
           <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger
               title="Más opciones"
@@ -110,7 +120,7 @@ export const MeetingRow = memo(function MeetingRow({
             {menuOpen && (
               <DropdownMenuContent
                 align="end"
-                className="w-40 bg-card border border-border text-foreground"
+                className="w-44 bg-card border border-border text-foreground"
               >
                 <DropdownMenuItem
                   onClick={() => {
@@ -125,38 +135,32 @@ export const MeetingRow = memo(function MeetingRow({
                 >
                   Ver detalles
                 </DropdownMenuItem>
-                {onEdit && m.status !== "cancelled" && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onEdit(m);
-                    }}
-                    className="cursor-pointer hover:bg-white/[0.06] text-xs"
-                  >
-                    Editar reunión
-                  </DropdownMenuItem>
-                )}
+
                 <DropdownMenuItem
                   onClick={() => {
                     setMenuOpen(false);
-                    navigator.clipboard?.writeText(
-                      m.roomUrl || window.location.href,
-                    );
+                    handleCopyLink();
                   }}
-                  className="cursor-pointer hover:bg-white/[0.06] text-xs"
+                  className="cursor-pointer hover:bg-white/[0.06] text-xs flex items-center justify-between"
                 >
-                  Copiar enlace
+                  <span>Copiar enlace</span>
+                  {copied ? (
+                    <Check className="w-3.5 h-3.5 text-green-400" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                  )}
                 </DropdownMenuItem>
-                {m.status !== "cancelled" && (
+
+                {m.status !== "FINISHED" && m.status !== "CANCELLED" && onCancel && (
                   <DropdownMenuItem
                     variant="destructive"
                     onClick={() => {
                       setMenuOpen(false);
-                      onCancel?.(m);
+                      onCancel(m);
                     }}
                     className="cursor-pointer text-xs text-destructive focus:text-destructive"
                   >
-                    Cancelar reunión
+                    Finalizar reunión
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>

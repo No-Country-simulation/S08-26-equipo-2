@@ -114,7 +114,7 @@ export default function EditMeetingScreen({
           No se encontró la reunión que deseas editar.
         </p>
         <Button onClick={() => navigate('/meetings')} variant="outline" className="cursor-pointer">
-          Volver al historial
+          Volver a la agenda
         </Button>
       </div>
     );

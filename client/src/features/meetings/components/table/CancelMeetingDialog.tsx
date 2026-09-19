@@ -29,6 +29,8 @@ export function CancelMeetingDialog({
 }: CancelMeetingDialogProps) {
   if (!meeting) return null;
 
+  const displayTitle = meeting.title || meeting.name || "Reunión";
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="bg-card border border-border text-foreground max-w-md rounded-2xl shadow-2xl">
@@ -37,12 +39,12 @@ export function CancelMeetingDialog({
             <AlertTriangle className="size-6 text-destructive" />
           </AlertDialogMedia>
           <AlertDialogTitle className="text-lg font-bold text-foreground">
-            ¿Cancelar reunión?
+            ¿Finalizar reunión?
           </AlertDialogTitle>
           <AlertDialogDescription className="text-sm text-muted-foreground mt-1">
-            ¿Estás seguro de que deseas cancelar la reunión{" "}
-            <span className="font-semibold text-foreground">"{meeting.name}"</span>?
-            Esta acción cambiará el estado de la reunión a cancelada.
+            ¿Estás seguro de que deseas finalizar la reunión{" "}
+            <span className="font-semibold text-foreground">"{displayTitle}"</span>?
+            Esta acción concluirá la reunión y desconectará a los participantes.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -62,10 +64,10 @@ export function CancelMeetingDialog({
             {isPending ? (
               <>
                 <RefreshCw className="size-4 animate-spin" />
-                Cancelando...
+                Finalizando...
               </>
             ) : (
-              "Sí, cancelar reunión"
+              "Sí, finalizar reunión"
             )}
           </AlertDialogAction>
         </AlertDialogFooter>

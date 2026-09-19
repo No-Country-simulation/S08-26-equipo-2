@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Copy, Share2, Calendar, Clock, Users, Check } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Copy, Share2, Calendar, Clock, Video, Check } from "lucide-react";
 import type { Meeting, Screen } from "../../types/meeting";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,8 +17,12 @@ export function MeetingSuccess({
   onNav,
 }: MeetingSuccessProps) {
   const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
 
-  const meetLink = meeting.roomUrl || "meetflow.app/meet/sprint-q4-abc123";
+  const title = meeting.title || meeting.name || "Mi Reunión";
+  const meetLink = meeting.id
+    ? `${window.location.origin}/meet/${meeting.id}`
+    : (meeting.roomUrl || `${window.location.origin}/meet`);
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(meetLink);
@@ -29,13 +34,31 @@ export function MeetingSuccess({
     if (navigator.share) {
       navigator
         .share({
-          title: meeting.name || "Reunión MeetFlow",
-          text: `Únete a mi reunión en MeetFlow: ${meeting.name}`,
-          url: `https://${meetLink}`,
+          title,
+          text: `Únete a mi reunión en MeetFlow: ${title}`,
+          url: meetLink,
         })
         .catch(() => {});
     } else {
       handleCopy();
+    }
+  };
+
+  const handleJoin = () => {
+    if (meeting.id) {
+      navigate(`/meet/${meeting.id}`);
+    } else if (onNav) {
+      onNav("video-room");
+    } else {
+      navigate("/livekit");
+    }
+  };
+
+  const handleGoToAgenda = () => {
+    if (onNav) {
+      onNav("dashboard");
+    } else {
+      navigate("/meetings");
     }
   };
 
@@ -56,10 +79,10 @@ export function MeetingSuccess({
           className="text-xl font-bold text-foreground mb-2"
           style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
         >
-          {isEdit ? "¡Reunión actualizada!" : "¡Reunión creada!"}
+          {isEdit ? "Reunión actualizada" : "Reunión creada"}
         </h2>
         <p className="text-sm mb-6 text-muted-foreground">
-          {meeting.name || "Mi Reunión"} · {meeting.date || "10 sep"} ·{" "}
+          {title} · {meeting.date || "Fecha por definir"} ·{" "}
           {meeting.time || "10:00"} · {meeting.duration || "60 min"}
         </p>
 
@@ -106,20 +129,20 @@ export function MeetingSuccess({
         {/* Info Grid */}
         <div className="grid grid-cols-3 gap-3 mb-6 text-center">
           {[
-            { icon: Calendar, label: meeting.date || "10 sep 2026" },
-            { icon: Clock, label: meeting.time || "10:00 AM" },
+            { icon: Calendar, label: meeting.date || "Fecha definida" },
+            { icon: Clock, label: meeting.time || "10:00" },
             {
-              icon: Users,
+              icon: Video,
               label: meeting.duration ? `${meeting.duration}` : "60 min",
             },
-          ].map(({ icon: Icon, label }) => (
+          ].map(({ icon: Icon, label }, idx) => (
             <div
-              key={label}
+              key={idx}
               className="p-3 rounded-lg border border-border bg-white/[0.02]"
             >
               <Icon className="w-4 h-4 mx-auto mb-1 text-primary" />
               <p
-                className="text-xs font-semibold text-foreground"
+                className="text-xs font-semibold text-foreground truncate"
                 style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
               >
                 {label}
@@ -132,16 +155,16 @@ export function MeetingSuccess({
         <div className="flex gap-3">
           <Button
             variant="outline"
-            onClick={() => onNav?.("dashboard")}
+            onClick={handleGoToAgenda}
             className="btn-ghost flex-1 py-2.5 text-sm cursor-pointer"
           >
-            Ir al dashboard
+            Ir a la agenda
           </Button>
           <Button
-            onClick={() => onNav?.("video-room")}
+            onClick={handleJoin}
             className="btn-primary flex-1 py-2.5 text-sm cursor-pointer shadow-lg shadow-primary/20"
           >
-            Iniciar reunión
+            Entrar a la sala
           </Button>
         </div>
       </Card>

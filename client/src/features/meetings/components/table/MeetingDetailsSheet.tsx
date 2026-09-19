@@ -8,10 +8,10 @@ import {
   Check,
   FileText,
   ExternalLink,
-  Edit3,
 } from "lucide-react";
-import type { Meeting } from "../../types/meeting";
+import type { Meeting, MeetingParticipantDto } from "../../types/meeting";
 import { statusClass, statusLabel } from "../../types/meeting";
+import { useMeeting } from "../../hooks/useMeetings";
 import {
   Sheet,
   SheetContent,
@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export interface MeetingDetailsSheetProps {
   meeting: Meeting | null;
@@ -32,18 +33,24 @@ export interface MeetingDetailsSheetProps {
 }
 
 export function MeetingDetailsSheet({
-  meeting,
+  meeting: initialMeeting,
   open,
   onOpenChange,
   onJoin,
   onEdit,
 }: MeetingDetailsSheetProps) {
   const [copied, setCopied] = useState(false);
+  const { data: fullMeeting, isLoading } = useMeeting(
+    open && initialMeeting?.id ? initialMeeting.id : undefined
+  );
+  const meeting = fullMeeting || initialMeeting;
 
   if (!meeting) return null;
 
-  const roomLink =
-    meeting.roomUrl || `meetflow.app/meet/${meeting.id || "room"}`;
+  const displayTitle = meeting.title || meeting.name || "Reunión";
+  const roomLink = meeting.id
+    ? `${window.location.origin}/meet/${meeting.id}`
+    : (meeting.roomUrl || `${window.location.origin}/meet`);
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(roomLink);
@@ -52,12 +59,12 @@ export function MeetingDetailsSheet({
   };
 
   const participantsList = Array.isArray(meeting.participants)
-    ? meeting.participants
+    ? (meeting.participants as (MeetingParticipantDto | string)[])
     : [];
 
   const participantsCount = Array.isArray(meeting.participants)
     ? meeting.participants.length
-    : (meeting.participants ?? 0);
+    : (typeof meeting.participants === "number" ? meeting.participants : 0);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -67,7 +74,7 @@ export function MeetingDetailsSheet({
       >
         {/* Encabezado */}
         <SheetHeader className="p-6 border-b border-border/60 bg-muted/20">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <Badge
               variant="outline"
               className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
@@ -81,7 +88,7 @@ export function MeetingDetailsSheet({
             <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0 border border-primary/20">
               <Video className="w-4 h-4" />
             </div>
-            {meeting.name}
+            <span className="truncate">{displayTitle}</span>
           </SheetTitle>
           <SheetDescription className="text-xs text-muted-foreground mt-1">
             Información detallada y opciones de la reunión
@@ -98,7 +105,7 @@ export function MeetingDetailsSheet({
                 Fecha
               </span>
               <span className="text-sm font-semibold text-foreground">
-                {meeting.date}
+                {meeting.date || "Por definir"}
               </span>
             </div>
 
@@ -108,7 +115,7 @@ export function MeetingDetailsSheet({
                 Hora y Duración
               </span>
               <span className="text-sm font-semibold text-foreground">
-                {meeting.time} ({meeting.duration})
+                {meeting.time || "--:--"} ({meeting.duration || "60 min"})
               </span>
             </div>
           </div>
@@ -153,25 +160,69 @@ export function MeetingDetailsSheet({
               </label>
             </div>
 
-            {participantsList.length > 0 ? (
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {participantsList.map((email, idx) => (
+            {isLoading ? (
+              <div className="space-y-2">
+                {[1, 2].map((i) => (
                   <div
-                    key={idx}
-                    className="flex items-center gap-2.5 p-2 rounded-lg bg-background/40 border border-border/60 text-xs text-foreground"
+                    key={i}
+                    className="flex items-center justify-between p-2 rounded-lg bg-background/40 border border-border/60"
                   >
-                    <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 uppercase">
-                      {email[0]}
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Skeleton className="w-6 h-6 rounded-full shrink-0" />
+                      <div className="space-y-1">
+                        <Skeleton className="h-3 w-28 rounded" />
+                        <Skeleton className="h-2.5 w-36 rounded" />
+                      </div>
                     </div>
-                    <span className="truncate">{email}</span>
+                    <Skeleton className="h-4 w-12 rounded" />
                   </div>
                 ))}
+              </div>
+            ) : participantsList.length > 0 ? (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {participantsList.map((p, idx) => {
+                  const isDto = typeof p === "object" && p !== null && "user" in p;
+                  const name = isDto
+                    ? (p as MeetingParticipantDto).user?.fullName
+                    : (typeof p === "string" ? p : "Participante");
+                  const email = isDto
+                    ? (p as MeetingParticipantDto).user?.email
+                    : (typeof p === "string" ? p : "");
+                  const role = isDto ? (p as MeetingParticipantDto).role : "";
+                  const initial = (name || email || "P")[0].toUpperCase();
+
+                  return (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-2 rounded-lg bg-background/40 border border-border/60 text-xs text-foreground"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 uppercase">
+                          {initial}
+                        </div>
+                        <div className="truncate min-w-0">
+                          <p className="font-semibold truncate">{name}</p>
+                          {email && email !== name && (
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {email}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {role && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          {role}
+                        </Badge>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <p className="text-xs text-muted-foreground italic">
                 {participantsCount > 0
                   ? `${participantsCount} participantes registrados.`
-                  : "No hay participantes registrados aún."}
+                  : "No hay participantes registrados aún en esta reunión."}
               </p>
             )}
           </div>
@@ -196,22 +247,6 @@ export function MeetingDetailsSheet({
 
         {/* Acciones en el pie del Sheet */}
         <SheetFooter className="p-4 border-t border-border/60 bg-muted/10 gap-2 flex-row sm:justify-end">
-          {onEdit && meeting.status !== "cancelled" && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                onOpenChange(false);
-                onEdit(meeting);
-              }}
-              className="cursor-pointer text-xs flex items-center gap-1.5"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              Editar
-            </Button>
-          )}
-
           {onJoin && (
             <Button
               type="button"

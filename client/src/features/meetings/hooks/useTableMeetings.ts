@@ -84,7 +84,10 @@ export function useTableMeetings(options: UseTableMeetingsOptions = {}) {
     const cleanQuery = deferredQuery.toLowerCase().trim();
     return meetings.filter((m) => {
       const matchQuery =
-        cleanQuery === "" || m.name.toLowerCase().includes(cleanQuery);
+        cleanQuery === "" ||
+        (m.title && m.title.toLowerCase().includes(cleanQuery)) ||
+        (m.name && m.name.toLowerCase().includes(cleanQuery)) ||
+        (m.code && m.code.toLowerCase().includes(cleanQuery));
       const matchFilter = filter === "all" || m.status === filter;
       return matchQuery && matchFilter;
     });
