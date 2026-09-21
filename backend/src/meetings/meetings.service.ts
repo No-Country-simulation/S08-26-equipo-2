@@ -1,15 +1,19 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MeetingStatus, ConnectionStatus } from '@prisma/client';
 import { CreateMeetingDto } from './dto/create-meeting.dto.js';
 
 @Injectable()
 export class MeetingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
   // Agenda: crear una reunión programada para el futuro
   async create(hostId: string, dto: CreateMeetingDto) {
-    return this.prisma.meeting.create({
+    const meeting = await this.prisma.meeting.create({
       data: {
         code: crypto.randomUUID().slice(0, 8),
         title: dto.title,
@@ -20,6 +24,8 @@ export class MeetingsService {
         estimatedDurationMinutes: dto.estimatedDurationMinutes,
       },
     });
+
+    return { ...meeting, link: this.buildLink(meeting.code) };
   }
 
   // Agenda: listar reuniones programadas (aún no realizadas)
@@ -157,5 +163,28 @@ export class MeetingsService {
     });
     if (!meeting) throw new NotFoundException('Reunión no encontrada');
     return meeting;
+  }
+
+  // Generar el enlace de invitación de una reunión (solo host)
+  async getMeetingLink(id: string, hostId: string) {
+    const meeting = await this.prisma.meeting.findUnique({ where: { id } });
+    if (!meeting) throw new NotFoundException('Reunión no encontrada');
+    if (meeting.hostId !== hostId) {
+      throw new ForbiddenException('Solo el host puede generar el enlace');
+    }
+
+    let code = meeting.code;
+    if (!code) {
+      code = crypto.randomUUID().slice(0, 8);
+      await this.prisma.meeting.update({ where: { id }, data: { code } });
+    }
+
+    return { meetingId: meeting.id, code, link: this.buildLink(code) };
+  }
+
+  private buildLink(code: string) {
+    const baseUrl =
+      this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:5173';
+    return `${baseUrl}/join/${code}`;
   }
 }

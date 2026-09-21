@@ -24,6 +24,10 @@ import {
   MeetingParticipantDto,
   MeetingWithParticipantsDto,
 } from './dto/meeting.dto.js';
+import {
+  MeetingLinkDto,
+  MeetingWithLinkDto,
+} from './dto/meeting-link.dto.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 
@@ -38,8 +42,8 @@ export class MeetingsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Crear una reunión programada' })
   @ApiCreatedResponse({
-    description: 'Reunión creada correctamente.',
-    type: MeetingDto,
+    description: 'Reunión creada correctamente, con su enlace de invitación.',
+    type: MeetingWithLinkDto,
   })
   @ApiUnauthorizedResponse({ description: 'Access token inválido o ausente' })
   create(@CurrentUser() user: any, @Body() dto: CreateMeetingDto) {
@@ -85,6 +89,23 @@ export class MeetingsController {
   @ApiUnauthorizedResponse({ description: 'Access token inválido o ausente' })
   close(@Param('id') id: string, @CurrentUser() user: any) {
     return this.meetingsService.close(id, user.id);
+  }
+
+  // Generar el enlace de invitación de la reunión
+  @Get(':id/link')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Generar el enlace de invitación de una reunión' })
+  @ApiOkResponse({
+    description: 'Enlace de invitación de la reunión.',
+    type: MeetingLinkDto,
+  })
+  @ApiNotFoundResponse({ description: 'Reunión no encontrada' })
+  @ApiForbiddenResponse({
+    description: 'Solo el host puede generar el enlace',
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token inválido o ausente' })
+  getMeetingLink(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.meetingsService.getMeetingLink(id, user.id);
   }
 
   // Listar participantes actuales de la reunión
