@@ -21,6 +21,7 @@ import { MeetingsService } from './meetings.service.js';
 import { CreateMeetingDto } from './dto/create-meeting.dto.js';
 import {
   MeetingDto,
+  MeetingParticipantDto,
   MeetingWithParticipantsDto,
 } from './dto/meeting.dto.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
@@ -84,6 +85,37 @@ export class MeetingsController {
   @ApiUnauthorizedResponse({ description: 'Access token inválido o ausente' })
   close(@Param('id') id: string, @CurrentUser() user: any) {
     return this.meetingsService.close(id, user.id);
+  }
+
+  // Listar participantes actuales de la reunión
+  @Get(':id/participants')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Listar los participantes de una reunión' })
+  @ApiOkResponse({
+    description: 'Participantes actuales de la reunión.',
+    type: [MeetingParticipantDto],
+  })
+  @ApiNotFoundResponse({ description: 'Reunión no encontrada' })
+  @ApiForbiddenResponse({ description: 'No perteneces a esta reunión' })
+  @ApiUnauthorizedResponse({ description: 'Access token inválido o ausente' })
+  findParticipants(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.meetingsService.findParticipants(id, user.id);
+  }
+
+  // Salir voluntariamente de la reunión
+  @Patch(':id/leave')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Salir voluntariamente de una reunión' })
+  @ApiOkResponse({
+    description: 'Participante marcado como salido de la reunión.',
+    type: MeetingParticipantDto,
+  })
+  @ApiNotFoundResponse({
+    description: 'Reunión no encontrada, o no estás actualmente en esta reunión',
+  })
+  @ApiUnauthorizedResponse({ description: 'Access token inválido o ausente' })
+  leave(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.meetingsService.leave(id, user.id);
   }
 
   // Detalle de una reunión puntual
