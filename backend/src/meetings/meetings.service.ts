@@ -87,6 +87,55 @@ export class MeetingsService {
     });
   }
 
+  // Listar participantes actuales de una reunión
+  async findParticipants(meetingId: string, requesterId: string) {
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { id: meetingId },
+    });
+    if (!meeting) throw new NotFoundException('Reunión no encontrada');
+
+    const isHost = meeting.hostId === requesterId;
+    const isParticipant = await this.prisma.meetingParticipant.findFirst({
+      where: { meetingId, userId: requesterId },
+    });
+    if (!isHost && !isParticipant) {
+      throw new ForbiddenException('No perteneces a esta reunión');
+    }
+
+    return this.prisma.meetingParticipant.findMany({
+      where: { meetingId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: { joinedAt: 'asc' },
+    });
+  }
+
+  // Un participante sale voluntariamente de la reunión
+  async leave(meetingId: string, userId: string) {
+    const participant = await this.prisma.meetingParticipant.findFirst({
+      where: { meetingId, userId, leftAt: null },
+    });
+    if (!participant) {
+      throw new NotFoundException('No estás actualmente en esta reunión');
+    }
+
+    return this.prisma.meetingParticipant.update({
+      where: { id: participant.id },
+      data: {
+        leftAt: new Date(),
+        connectionStatus: ConnectionStatus.LEFT,
+      },
+    });
+  }
+
   // Detalle de una reunión puntual
   async findOne(id: string) {
     const meeting = await this.prisma.meeting.findUnique({

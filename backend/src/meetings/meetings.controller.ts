@@ -86,6 +86,18 @@ export class MeetingsController {
     return this.meetingsService.close(id, user.id);
   }
 
+  // Listar participantes actuales de la reunión
+  @Get(':id/participants')
+  findParticipants(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.meetingsService.findParticipants(id, user.id);
+  }
+
+  // Salir voluntariamente de la reunión
+  @Patch(':id/leave')
+  leave(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.meetingsService.leave(id, user.id);
+  }
+
   // Detalle de una reunión puntual
   @Get(':id')
   @ApiBearerAuth()
