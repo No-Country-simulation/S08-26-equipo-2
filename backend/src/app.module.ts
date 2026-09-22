@@ -8,6 +8,7 @@ import { RoomsModule } from './rooms/rooms.module.js';
 import { MeetingsModule } from './meetings/meetings.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { AccessRequestsModule } from './access-requests/access-requests.module.js';
+import { LivekitModule } from './livekit/livekit.module.js';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AccessRequestsModule } from './access-requests/access-requests.module.j
     MeetingsModule,
     AuthModule,
     AccessRequestsModule,
+    LivekitModule,
   ],
   controllers: [AppController],
   providers: [AppService],
