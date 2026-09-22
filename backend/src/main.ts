@@ -1,10 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app: NestExpressApplication = await NestFactory.create(AppModule, {
+    rawBody: true,
+  });
+
+  // LiveKit envía el body con 'application/webhook+json'; express.json() no lo
+  // parsea, así que registramos un parser raw que captura los bytes exactos.
+  app.useBodyParser('raw', { type: 'application/webhook+json' });
 
   app.setGlobalPrefix('api');
   app.enableCors();
