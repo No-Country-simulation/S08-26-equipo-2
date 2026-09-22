@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useMediaSettingsStore } from "@/features/settings/stores/useMediaSettingsStore";
 import {
   Mic,
   MicOff,
@@ -318,6 +319,8 @@ export function WaitingRoom({
   };
 
   const handleJoinCall = () => {
+    useMediaSettingsStore.getState().setIsCameraActive(cam);
+    useMediaSettingsStore.getState().setIsMicActive(mic);
     // Detener la camara antes de entrar a LiveKit
     if (mediaStream) {
       mediaStream.getTracks().forEach((t) => t.stop());

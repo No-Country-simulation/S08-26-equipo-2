@@ -1,7 +1,596 @@
-export default function LivekitPage (){
-    return (
-        <div className="bg-primary" >
-            <h2>Livekit page</h2>
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
+import {
+  LiveKitRoom,
+  RoomAudioRenderer,
+  StartAudio,
+  VideoTrack,
+  isTrackReference,
+  useChat,
+  useConnectionState,
+  useLocalParticipant,
+  useParticipants,
+  useRoomContext,
+  useSpeakingParticipants,
+  useTracks,
+  type TrackReferenceOrPlaceholder,
+} from "@livekit/components-react";
+import { ConnectionState, Track } from "livekit-client";
+import {
+  Camera,
+  CameraOff,
+  Check,
+  Copy,
+  Maximize,
+  MessageSquare,
+  Mic,
+  MicOff,
+  Monitor,
+  MoreHorizontal,
+  PhoneOff,
+  Send,
+  Users,
+  X,
+} from "lucide-react";
+import { useMediaSettingsStore } from "@/features/settings/stores/useMediaSettingsStore";
+import type { Meeting } from "@/features/meetings/types/meeting";
+import "./livekit.css";
+
+interface Props {
+  meeting?: Meeting;
+  serverUrl?: string;
+  token?: string;
+  onLeave?: () => void;
+}
+
+const initials = (name: string) =>
+  name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase() || "?";
+const trackKey = (track: TrackReferenceOrPlaceholder) =>
+  `${track.participant.identity}:${track.source}`;
+
+function Tile({
+  track,
+  hostId,
+  featured = false,
+  onSelect,
+}: {
+  track: TrackReferenceOrPlaceholder;
+  hostId?: string;
+  featured?: boolean;
+  onSelect?: () => void;
+}) {
+  const participant = track.participant;
+  const speaking = useSpeakingParticipants().some(
+    (person) => person.identity === participant.identity,
+  );
+  const name = participant.name || participant.identity || "Participante";
+  const screen = track.source === Track.Source.ScreenShare;
+  return (
+    <button
+      type="button"
+      className={`call-tile ${featured ? "call-featured" : ""} ${speaking ? "is-speaking" : ""}`}
+      onClick={onSelect}
+      aria-label={`Destacar a ${name}`}
+    >
+      {isTrackReference(track) && !track.publication.isMuted ? (
+        <VideoTrack trackRef={track} className={screen ? "call-screen" : ""} />
+      ) : (
+        <div className="call-avatar">{initials(name)}</div>
+      )}
+      {speaking && <span className="call-speaking">● Hablando</span>}
+      <div className="call-name">
+        <span>
+          {name}
+          {participant.isLocal ? " (Tú)" : ""}
+          {screen ? " · Pantalla" : ""}
+        </span>
+        {participant.identity === hostId && <small>Host</small>}
+        {!participant.isMicrophoneEnabled && (
+          <MicOff size={14} className="call-muted" />
+        )}
+      </div>
+    </button>
+  );
+}
+
+function Control({
+  children,
+  label,
+  active,
+  danger,
+  disabled,
+  onClick,
+  badge,
+}: {
+  children: ReactNode;
+  label: string;
+  active?: boolean;
+  danger?: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  badge?: number;
+}) {
+  return (
+    <button
+      type="button"
+      className={`call-control ${active ? "is-active" : ""} ${danger ? "is-danger" : ""}`}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      aria-pressed={active}
+    >
+      {children}
+      <span>{label}</span>
+      {!!badge && <b className="call-badge">{badge}</b>}
+    </button>
+  );
+}
+
+function RoomView({ meeting, onLeave }: Props) {
+  const room = useRoomContext();
+  const state = useConnectionState();
+  const participants = useParticipants();
+  const speakers = useSpeakingParticipants();
+  const tracks = useTracks([
+    { source: Track.Source.Camera, withPlaceholder: true },
+    { source: Track.Source.ScreenShare, withPlaceholder: false },
+  ]);
+  const {
+    localParticipant,
+    isCameraEnabled,
+    isMicrophoneEnabled,
+    isScreenShareEnabled,
+  } = useLocalParticipant();
+  const { chatMessages, send, isSending } = useChat();
+  const [pinned, setPinned] = useState<string>();
+  const [panel, setPanel] = useState<"chat" | "people" | null>(null);
+  const [more, setMore] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [seen, setSeen] = useState(0);
+  const [started] = useState(() => Date.now());
+  const [now, setNow] = useState(started);
+  const chatEnd = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    if (panel === "chat")
+      chatEnd.current?.scrollIntoView({ behavior: "smooth" });
+  }, [panel, chatMessages.length]);
+  const featured =
+    tracks.find((track) => trackKey(track) === pinned) ??
+    tracks.find((track) => track.source === Track.Source.ScreenShare) ??
+    tracks.find(
+      (track) => track.participant.identity === speakers[0]?.identity,
+    ) ??
+    tracks[0];
+  const rest = tracks.filter((track) => track !== featured);
+  const start = meeting?.actualStartAt
+    ? new Date(meeting.actualStartAt).getTime()
+    : started;
+  const elapsed = Math.max(
+    0,
+    Math.floor((now - (Number.isFinite(start) ? start : started)) / 1000),
+  );
+  const duration = [
+    Math.floor(elapsed / 3600),
+    Math.floor(elapsed / 60) % 60,
+    elapsed % 60,
+  ]
+    .map((value) => String(value).padStart(2, "0"))
+    .join(":");
+  const connected = state === ConnectionState.Connected;
+  const run = async (action: () => Promise<unknown>) => {
+    setBusy(true);
+    setError("");
+    try {
+      await action();
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "No se pudo completar la acción.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+  const togglePanel = (next: "chat" | "people") => {
+    if (panel === "chat" || next === "chat") setSeen(chatMessages.length);
+    setPanel(panel === next ? null : next);
+  };
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    const text = message.trim();
+    if (text)
+      void run(async () => {
+        await send(text);
+        setMessage("");
+      });
+  };
+  return (
+    <div className="call-room">
+      <header className="call-header">
+        <div className="call-heading">
+          <i />
+          <h1>{meeting?.title || room.name || "Sala de reunión"}</h1>
+          <time>{duration}</time>
         </div>
-    )
+        <div className="call-status">
+          <span className={connected ? "live" : ""}>
+            {connected
+              ? "En vivo"
+              : state === ConnectionState.Reconnecting ||
+                  state === ConnectionState.SignalReconnecting
+                ? "Reconectando…"
+                : "Conectando…"}
+          </span>
+          <span>{participants.length} participantes</span>
+        </div>
+      </header>
+      {error && (
+        <div className="call-error" role="alert">
+          {error}
+          <button aria-label="Cerrar aviso" onClick={() => setError("")}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
+      <main className="call-body">
+        <div className="call-stage">
+          {featured ? (
+            <Tile
+              track={featured}
+              hostId={meeting?.hostId}
+              featured
+              onSelect={() => setPinned(undefined)}
+            />
+          ) : (
+            <div className="call-empty">Conectando con la sala…</div>
+          )}
+        </div>
+        {rest.length > 0 && (
+          <aside
+            className="call-filmstrip"
+            aria-label="Videos de participantes"
+          >
+            {rest.map((track) => (
+              <Tile
+                key={trackKey(track)}
+                track={track}
+                hostId={meeting?.hostId}
+                onSelect={() => setPinned(trackKey(track))}
+              />
+            ))}
+          </aside>
+        )}
+        {panel && (
+          <aside className="call-panel">
+            <header>
+              <h2>
+                {panel === "chat"
+                  ? "Chat de la reunión"
+                  : `Personas (${participants.length})`}
+              </h2>
+              <button
+                onClick={() => togglePanel(panel)}
+                aria-label="Cerrar panel"
+              >
+                <X size={18} />
+              </button>
+            </header>
+            {panel === "chat" ? (
+              <>
+                <div className="call-messages" role="log" aria-live="polite">
+                  {chatMessages.length === 0 && (
+                    <p className="call-hint">
+                      Comienza la conversación. Los mensajes solo están
+                      disponibles durante esta sesión.
+                    </p>
+                  )}
+                  {chatMessages.map((item, index) => (
+                    <article key={`${item.timestamp}-${index}`}>
+                      <div>
+                        <strong>
+                          {item.from?.name ||
+                            item.from?.identity ||
+                            "Participante"}
+                        </strong>
+                        <time>
+                          {new Date(item.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </time>
+                      </div>
+                      <p>{item.message}</p>
+                    </article>
+                  ))}
+                  <div ref={chatEnd} />
+                </div>
+                <form className="call-compose" onSubmit={submit}>
+                  <input
+                    aria-label="Mensaje"
+                    placeholder="Escribe un mensaje…"
+                    value={message}
+                    onChange={(event) => setMessage(event.target.value)}
+                    maxLength={4000}
+                  />
+                  <button
+                    aria-label="Enviar mensaje"
+                    disabled={!connected || isSending || !message.trim()}
+                  >
+                    <Send size={18} />
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="call-people">
+                {participants.map((person) => (
+                  <div key={person.identity}>
+                    <span className="call-person-avatar">
+                      {initials(person.name || person.identity)}
+                    </span>
+                    <span>
+                      {person.name || person.identity}
+                      {person.isLocal && " (Tú)"}
+                      {person.identity === meeting?.hostId && (
+                        <small>Anfitrión</small>
+                      )}
+                    </span>
+                    {person.isMicrophoneEnabled ? (
+                      <Mic size={15} />
+                    ) : (
+                      <MicOff size={15} className="call-muted" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </aside>
+        )}
+      </main>
+      <footer className="call-toolbar">
+        <div className="call-controls">
+          <Control
+            label={isMicrophoneEnabled ? "Silenciar" : "Activar mic."}
+            active={!isMicrophoneEnabled}
+            disabled={busy || !connected}
+            onClick={() =>
+              void run(() =>
+                localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled),
+              )
+            }
+          >
+            {isMicrophoneEnabled ? <Mic /> : <MicOff />}
+          </Control>
+          <Control
+            label={isCameraEnabled ? "Apagar cám." : "Activar cám."}
+            active={!isCameraEnabled}
+            disabled={busy || !connected}
+            onClick={() =>
+              void run(() =>
+                localParticipant.setCameraEnabled(!isCameraEnabled),
+              )
+            }
+          >
+            {isCameraEnabled ? <Camera /> : <CameraOff />}
+          </Control>
+          <Control
+            label={isScreenShareEnabled ? "Dejar de compartir" : "Compartir"}
+            active={isScreenShareEnabled}
+            disabled={busy || !connected}
+            onClick={() =>
+              void run(() =>
+                localParticipant.setScreenShareEnabled(!isScreenShareEnabled),
+              )
+            }
+          >
+            <Monitor />
+          </Control>
+        </div>
+        <div className="call-controls">
+          <Control
+            label="Chat"
+            active={panel === "chat"}
+            badge={
+              panel === "chat" ? 0 : Math.max(0, chatMessages.length - seen)
+            }
+            onClick={() => togglePanel("chat")}
+          >
+            <MessageSquare />
+          </Control>
+          <Control
+            label="Personas"
+            active={panel === "people"}
+            onClick={() => togglePanel("people")}
+          >
+            <Users />
+          </Control>
+          <div className="call-more">
+            <Control label="Más" active={more} onClick={() => setMore(!more)}>
+              <MoreHorizontal />
+            </Control>
+            {more && (
+              <div className="call-menu">
+                <button
+                  onClick={() =>
+                    void run(async () => {
+                      if (document.fullscreenElement)
+                        await document.exitFullscreen();
+                      else await document.documentElement.requestFullscreen();
+                      setMore(false);
+                    })
+                  }
+                >
+                  <Maximize size={16} /> Pantalla completa
+                </button>
+                <button
+                  onClick={() =>
+                    void run(async () => {
+                      await navigator.clipboard.writeText(window.location.href);
+                      setCopied(true);
+                    })
+                  }
+                >
+                  {copied ? <Check size={16} /> : <Copy size={16} />}
+                  {copied ? "Enlace copiado" : "Copiar enlace"}
+                </button>
+                <button
+                  onClick={() => {
+                    setPinned(undefined);
+                    setMore(false);
+                  }}
+                >
+                  Seguir al hablante
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        <Control
+          label="Salir"
+          danger
+          onClick={() =>
+            void run(async () => {
+              await room.disconnect();
+              onLeave?.();
+            })
+          }
+        >
+          <PhoneOff />
+        </Control>
+      </footer>
+      <RoomAudioRenderer />
+      <StartAudio label="Activar audio de la reunión" />
+    </div>
+  );
+}
+
+export default function LivekitPage({
+  meeting,
+  serverUrl,
+  token,
+  onLeave,
+}: Props) {
+  const media = useMediaSettingsStore();
+  const [credentials, setCredentials] = useState<{
+    url: string;
+    token: string;
+  } | null>(null);
+  const [error, setError] = useState("");
+  const [ended, setEnded] = useState(false);
+  const url = credentials?.url || serverUrl;
+  const accessToken = credentials?.token || token;
+  const [options] = useState(() => ({
+    adaptiveStream: true,
+    dynacast: true,
+    audioCaptureDefaults: { deviceId: media.selectedMic || undefined },
+    videoCaptureDefaults: { deviceId: media.selectedCamera || undefined },
+    audioOutput: { deviceId: media.selectedSpeaker || "default" },
+  }));
+  if (!url || !accessToken || ended)
+    return (
+      <div className="call-entry">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            const data = new FormData(event.currentTarget);
+            const address = String(data.get("url")).trim();
+            try {
+              const parsed = new URL(address);
+              if (!["wss:", "ws:"].includes(parsed.protocol)) throw new Error();
+            } catch {
+              setError("Introduce una URL válida de LiveKit (wss://…).");
+              return;
+            }
+            setError("");
+            setEnded(false);
+            setCredentials({
+              url: address,
+              token: String(data.get("token")).trim(),
+            });
+          }}
+        >
+          <span className="call-entry-icon">
+            <Monitor size={28} />
+          </span>
+          <h1>
+            {ended
+              ? "Has salido de la reunión"
+              : meeting?.title || "Conectar a la reunión"}
+          </h1>
+          <p>
+            Introduce el acceso a tu sala de LiveKit. El token debe ser emitido
+            por tu servidor; se utiliza únicamente en esta sesión.
+          </p>
+          <label>
+            URL del servidor
+            <input
+              name="url"
+              placeholder="wss://tu-proyecto.livekit.cloud"
+              defaultValue={serverUrl || ""}
+              required
+            />
+          </label>
+          <label>
+            Token de participante
+            <input name="token" type="password" autoComplete="off" required />
+          </label>
+          {error && (
+            <p role="alert" className="call-muted">
+              {error}
+            </p>
+          )}
+          <button className="call-connect" type="submit">
+            Entrar a la reunión
+          </button>
+          {onLeave && (
+            <button type="button" onClick={onLeave}>
+              Volver a reuniones
+            </button>
+          )}
+        </form>
+      </div>
+    );
+  return (
+    <>
+      <LiveKitRoom
+        serverUrl={url}
+        token={accessToken}
+        connect
+        audio={media.isMicActive}
+        video={media.isCameraActive}
+        options={options}
+        onError={() => {
+          setError(
+            "No se pudo conectar. Comprueba el servidor, el token y los permisos de cámara y micrófono.",
+          );
+          setEnded(true);
+          setCredentials(null);
+        }}
+        onDisconnected={() => {
+          setEnded(true);
+          setCredentials(null);
+        }}
+      >
+        <RoomView meeting={meeting} onLeave={onLeave} />
+      </LiveKitRoom>
+    </>
+  );
 }

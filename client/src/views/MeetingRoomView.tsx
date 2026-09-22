@@ -2,7 +2,10 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { useMeeting } from "@/features/meetings/hooks/useMeetings";
-import { WaitingRoom, useAccessRequestStore } from "@/features/invitations-access";
+import {
+  WaitingRoom,
+  useAccessRequestStore,
+} from "@/features/invitations-access";
 import LivekitPage from "./livekit/LivekitPage";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -21,12 +24,7 @@ export function MeetingRoomView() {
 
   const [inCall, setInCall] = useState(false);
 
-  const {
-    data: meeting,
-    isLoading,
-    isError,
-    refetch,
-  } = useMeeting(id);
+  const { data: meeting, isLoading, isError, refetch } = useMeeting(id);
 
   // 1. Validar si el usuario es el anfitrion de la sesion
   const isHost = Boolean(user?.id && meeting?.hostId === user.id);
@@ -39,10 +37,7 @@ export function MeetingRoomView() {
   const isAdmittedParticipant = participants.some((p: any) => {
     if (typeof p === "object" && p !== null) {
       const participantUserId = p.user?.id || p.userId;
-      return (
-        participantUserId === user?.id &&
-        p.connectionStatus !== "LEFT"
-      );
+      return participantUserId === user?.id && p.connectionStatus !== "LEFT";
     }
     return false;
   });
@@ -96,7 +91,9 @@ export function MeetingRoomView() {
 
   // Si el usuario ya inicio la llamada tras pasar la validacion de horario y permisos
   if (inCall) {
-    return <LivekitPage />;
+    return (
+      <LivekitPage meeting={meeting} onLeave={() => navigate("/meetings")} />
+    );
   }
 
   // Pre-join y sala de espera general:
