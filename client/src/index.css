@@ -193,6 +193,16 @@
     background: rgba(13, 23, 48, 0.7);
   }
 
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+  }
+
+  .reconnect-pulse {
+    animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
   .glow-blue {
     box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
   }

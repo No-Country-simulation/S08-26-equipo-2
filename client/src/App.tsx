@@ -11,6 +11,7 @@ import {
 import { SettingsScreen } from "./features/settings";
 import { AuthView, ForgotPasswordView } from "./features/auth";
 import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
+import { MeetingRoomView } from "./views/MeetingRoomView";
 
 const router = createBrowserRouter([
   {
@@ -44,6 +45,10 @@ const router = createBrowserRouter([
   {
     element: <ProtectedRoute />,
     children: [
+      {
+        path: "/meet/:id",
+        element: <MeetingRoomView />,
+      },
       {
         element: <PanelLayout />,
         children: [

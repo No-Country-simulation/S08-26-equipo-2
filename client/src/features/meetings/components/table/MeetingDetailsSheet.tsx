@@ -23,6 +23,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
+import { PendingAccessRequestsList } from "@/features/invitations-access";
 
 export interface MeetingDetailsSheetProps {
   meeting: Meeting | null;
@@ -39,6 +41,7 @@ export function MeetingDetailsSheet({
   onJoin,
   // onEdit,
 }: MeetingDetailsSheetProps) {
+  const { user } = useAuthStore();
   const [copied, setCopied] = useState(false);
   const { data: fullMeeting, isLoading } = useMeeting(
     open && initialMeeting?.id ? initialMeeting.id : undefined
@@ -46,6 +49,8 @@ export function MeetingDetailsSheet({
   const meeting = fullMeeting || initialMeeting;
 
   if (!meeting) return null;
+
+  const isHost = Boolean(user?.id && meeting.hostId === user.id);
 
   const displayTitle = meeting.title || meeting.name || "Reunión";
   const roomLink = meeting.id
@@ -150,6 +155,11 @@ export function MeetingDetailsSheet({
               </Button>
             </div>
           </div>
+
+          {/* Solicitudes de acceso pendientes (solo para el anfitrion) */}
+          {isHost && meeting.id && (
+            <PendingAccessRequestsList meetingId={meeting.id} />
+          )}
 
           {/* Participantes */}
           <div className="space-y-3">
