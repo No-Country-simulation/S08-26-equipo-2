@@ -1,8 +1,13 @@
+import { useMutation } from "@tanstack/react-query";
+import { joinMeeting } from "./livekit/joinMeeting";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { useMeeting } from "@/features/meetings/hooks/useMeetings";
-import { WaitingRoom, useAccessRequestStore } from "@/features/invitations-access";
+import {
+  WaitingRoom,
+  useAccessRequestStore,
+} from "@/features/invitations-access";
 import LivekitPage from "./livekit/LivekitPage";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -20,13 +25,12 @@ export function MeetingRoomView() {
   const { clearRequest } = useAccessRequestStore();
 
   const [inCall, setInCall] = useState(false);
+  const connection = useMutation({
+    mutationFn: () => joinMeeting(id!),
+    onSuccess: () => setInCall(true),
+  });
 
-  const {
-    data: meeting,
-    isLoading,
-    isError,
-    refetch,
-  } = useMeeting(id);
+  const { data: meeting, isLoading, isError, refetch } = useMeeting(id);
 
   // 1. Validar si el usuario es el anfitrion de la sesion
   const isHost = Boolean(user?.id && meeting?.hostId === user.id);
@@ -36,13 +40,10 @@ export function MeetingRoomView() {
     ? meeting.participants
     : [];
 
-  const isAdmittedParticipant = participants.some((p: any) => {
+  const isAdmittedParticipant = participants.some((p) => {
     if (typeof p === "object" && p !== null) {
-      const participantUserId = p.user?.id || p.userId;
-      return (
-        participantUserId === user?.id &&
-        p.connectionStatus !== "LEFT"
-      );
+      const participantUserId = p.user?.id;
+      return participantUserId === user?.id && ["CONNECTED", "RECONNECTING", "DISCONNECTED"].includes(p.connectionStatus);
     }
     return false;
   });
@@ -95,21 +96,34 @@ export function MeetingRoomView() {
   }
 
   // Si el usuario ya inicio la llamada tras pasar la validacion de horario y permisos
-  if (inCall) {
-    return <LivekitPage />;
+  if (inCall && connection.data) {
+    return (
+      <LivekitPage
+        key={connection.data.token}
+        meeting={meeting}
+        serverUrl={connection.data.serverUrl}
+        token={connection.data.token}
+        onRetry={() => { setInCall(false); connection.reset(); }}
+        onLeave={() => navigate("/meetings")}
+      />
+    );
   }
 
   // Pre-join y sala de espera general:
   // Controla permisos, hardware previo (camara/microfono) y horarios antes de consumir servidores de videollamada
   return (
+    <>
+    {connection.error && <div role="alert" className="p-4 bg-destructive/15 text-rose-300 text-center">{connection.error.message}</div>}
     <WaitingRoom
       meeting={meeting}
       isHost={isHost}
       isAdmittedParticipant={isAdmittedParticipant}
-      onJoin={() => setInCall(true)}
+      onJoin={() => connection.mutate()}
+      isJoining={connection.isPending}
       onRefreshMeeting={refetch}
       onLeave={() => navigate("/meetings")}
     />
+    </>
   );
 }
 

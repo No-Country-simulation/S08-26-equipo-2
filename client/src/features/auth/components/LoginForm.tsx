@@ -1,7 +1,8 @@
+import { getAuthDestination } from "../getAuthDestination";
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useNavigate, Link } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { loginSchema, type LoginFormData } from "../schemas/login.schema";
 import GoogleButton from "./GoogleButon";
 import { LoginToggle } from "./LoginToggle";
@@ -15,6 +16,7 @@ export interface LoginFormProps {
 
 export function LoginForm({ onToggleMode }: LoginFormProps = {}) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, clearError } = useAuthStore();
   const [serverError, setServerError] = useState<string | null>(null);
   const [showPass, setShowPass] = useState(false);
@@ -32,7 +34,7 @@ export function LoginForm({ onToggleMode }: LoginFormProps = {}) {
     clearError();
     try {
       await login(data);
-      navigate("/");
+      navigate(getAuthDestination(location.state), { replace: true });
     } catch (err: unknown) {
       if (err instanceof Error) {
         setServerError(err.message);
