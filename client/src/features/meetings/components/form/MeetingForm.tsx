@@ -87,8 +87,9 @@ export function MeetingForm({
                 id="date"
                 type="date"
                 min={todayStr}
+                disabled={isPending || isEdit}
                 style={{ colorScheme: "dark" }}
-                className={`w-full py-2.5 pl-3 pr-10 text-sm bg-card border-border text-foreground cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                className={`w-full py-2.5 pl-3 pr-10 text-sm bg-card border-border text-foreground cursor-pointer [color-scheme:dark] disabled:opacity-60 disabled:cursor-not-allowed [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
                   errors.date ? "border-destructive" : ""
                 }`}
                 {...register("date")}
@@ -116,8 +117,9 @@ export function MeetingForm({
                 id="time"
                 type="time"
                 min={isToday ? currentTimeStr : undefined}
+                disabled={isPending || isEdit}
                 style={{ colorScheme: "dark" }}
-                className={`w-full py-2.5 pl-3 pr-10 text-sm bg-card border-border text-foreground cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                className={`w-full py-2.5 pl-3 pr-10 text-sm bg-card border-border text-foreground cursor-pointer [color-scheme:dark] disabled:opacity-60 disabled:cursor-not-allowed [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
                   errors.time ? "border-destructive" : ""
                 }`}
                 {...register("time")}
@@ -147,13 +149,14 @@ export function MeetingForm({
                 <Select
                   items={DURATION_OPTIONS}
                   value={field.value}
+                  disabled={isPending || isEdit}
                   onValueChange={(val) => {
                     if (val) field.onChange(val);
                   }}
                 >
                   <SelectTrigger
                     id="duration"
-                    className="w-full h-10 bg-card border-border"
+                    className="w-full h-10 bg-card border-border disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <SelectValue placeholder="Selecciona duración" />
                   </SelectTrigger>
@@ -169,6 +172,12 @@ export function MeetingForm({
             />
           </div>
         </div>
+
+        {isEdit && (
+          <p className="text-xs text-muted-foreground/80 italic">
+            Nota: Por seguridad, la fecha, hora y duración se mantienen fijas en reuniones ya programadas. Solo puedes modificar el título y la descripción.
+          </p>
+        )}
 
         {/* Descripción */}
         <div>

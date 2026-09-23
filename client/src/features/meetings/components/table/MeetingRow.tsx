@@ -24,6 +24,8 @@ export interface MeetingRowProps {
 export const MeetingRow = memo(function MeetingRow({
   meeting: m,
   onJoin,
+  // TODO: Habilitar onEdit cuando el endpoint PATCH /meetings/:id esté completamente operativo en el backend.
+  // Recomendación: permitir editar únicamente título y descripción, manteniendo fecha y hora bloqueadas.
   // onEdit,
   onCancel,
   onViewDetails,
@@ -135,6 +137,8 @@ export const MeetingRow = memo(function MeetingRow({
                 >
                   Ver detalles
                 </DropdownMenuItem>
+
+                {/* TODO: Agregar opción de "Editar reunión" aquí cuando el endpoint PATCH esté disponible en backend */}
 
                 <DropdownMenuItem
                   onClick={() => {

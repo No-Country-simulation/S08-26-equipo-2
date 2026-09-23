@@ -82,6 +82,33 @@ export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps
   const form = useForm<CreateMeetingFormData>({
     defaultValues: getFormValues(),
     resolver: async (values) => {
+      // En modo edición la fecha y hora están fijas; solo se valida que el título cumpla los requisitos
+      if (isEdit) {
+        if (!values.title || values.title.trim().length < 3) {
+          return {
+            values: {},
+            errors: {
+              title: {
+                type: "custom",
+                message: "El título debe tener al menos 3 caracteres",
+              },
+            },
+          };
+        }
+        if (values.title.length > 150) {
+          return {
+            values: {},
+            errors: {
+              title: {
+                type: "custom",
+                message: "El título no puede exceder 150 caracteres",
+              },
+            },
+          };
+        }
+        return { values, errors: {} };
+      }
+
       const result = createMeetingSchema.safeParse(values);
       if (result.success) {
         return { values: result.data, errors: {} };
@@ -130,21 +157,24 @@ export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps
         }
       }
 
-      const payload = {
-        title: data.title,
-        description: data.description || undefined,
-        scheduledStartAt,
-        scheduledEndAt,
-        estimatedDurationMinutes: durationMinutes,
-      };
-
       if (isEdit && initialData?.id) {
+        // En modo edición solo se actualizan título y descripción
         const updatedMeeting = await updateMutation.mutateAsync({
           id: initialData.id,
-          payload,
+          payload: {
+            title: data.title,
+            description: data.description || undefined,
+          },
         });
         onSuccess?.(updatedMeeting);
       } else {
+        const payload = {
+          title: data.title,
+          description: data.description || undefined,
+          scheduledStartAt,
+          scheduledEndAt,
+          estimatedDurationMinutes: durationMinutes,
+        };
         const newMeeting = await createMutation.mutateAsync(payload);
         onSuccess?.(newMeeting);
       }

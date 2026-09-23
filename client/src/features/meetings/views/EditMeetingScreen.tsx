@@ -9,6 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
 
+// TODO: Esta pantalla de edición está preparada pero inactiva en la navegación principal
+// debido a que el endpoint PATCH /meetings/:id en el backend aún no está completamente operativo.
+// Cuando se habilite, se recomienda permitir modificar únicamente título y descripción,
+// dejando bloqueados la fecha y hora para evitar problemas de reprogramación.
+
 export interface EditMeetingScreenProps {
   meeting?: Meeting;
   onNav?: (screen: Screen) => void;

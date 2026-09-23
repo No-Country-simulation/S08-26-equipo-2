@@ -39,6 +39,7 @@ export function MeetingDetailsSheet({
   open,
   onOpenChange,
   onJoin,
+  // TODO: Habilitar onEdit cuando el backend tenga listo el soporte para actualización de reuniones
   // onEdit,
 }: MeetingDetailsSheetProps) {
   const { user } = useAuthStore();
@@ -257,6 +258,7 @@ export function MeetingDetailsSheet({
 
         {/* Acciones en el pie del Sheet */}
         <SheetFooter className="p-4 border-t border-border/60 bg-muted/10 gap-2 flex-row sm:justify-end">
+          {/* TODO: Incorporar botón "Editar reunión" cuando el endpoint PATCH /meetings/:id esté activo en backend */}
           {onJoin && (
             <Button
               type="button"
