@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { RefreshCw } from 'lucide-react';
 import { useTableMeetings } from '../../hooks/useTableMeetings';
 import { useCloseMeeting } from '../../hooks/useMeetings';
@@ -37,6 +38,7 @@ export default function MeetingsTable({
 }: MeetingsTableProps) {
   const navigate = useNavigate();
   const [meetingToCancel, setMeetingToCancel] = useState<Meeting | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const closeMutation = useCloseMeeting();
 
@@ -44,6 +46,7 @@ export default function MeetingsTable({
     if (onCancelMeeting) {
       onCancelMeeting(meeting);
     } else {
+      setCancelError(null);
       setMeetingToCancel(meeting);
     }
   };
@@ -70,11 +73,24 @@ export default function MeetingsTable({
 
   const handleConfirmCancel = async () => {
     if (!meetingToCancel?.id) return;
+    setCancelError(null);
     try {
       await closeMutation.mutateAsync(meetingToCancel.id);
       setMeetingToCancel(null);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error al finalizar la reunión:', err);
+      let message = 'No se pudo finalizar la reunión. Verifica si tienes permisos de anfitrión.';
+      if (axios.isAxiosError(err)) {
+        const serverMsg = err.response?.data?.message;
+        if (typeof serverMsg === 'string') {
+          message = serverMsg;
+        } else if (Array.isArray(serverMsg)) {
+          message = serverMsg.join(', ');
+        }
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      setCancelError(message);
     }
   };
 
@@ -168,10 +184,14 @@ export default function MeetingsTable({
         meeting={meetingToCancel}
         open={Boolean(meetingToCancel)}
         onOpenChange={(open) => {
-          if (!open) setMeetingToCancel(null);
+          if (!open) {
+            setMeetingToCancel(null);
+            setCancelError(null);
+          }
         }}
         onConfirm={handleConfirmCancel}
         isPending={closeMutation.isPending}
+        errorMessage={cancelError}
       />
 
       {/* 6. Sheet lateral con los detalles completos de la reunión */}

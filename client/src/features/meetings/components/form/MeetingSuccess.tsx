@@ -2,6 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Copy, Share2, Calendar, Clock, Video, Check } from "lucide-react";
 import type { Meeting, Screen } from "../../types/meeting";
+import {
+  formatMeetingDate,
+  formatMeetingTime,
+  formatMeetingDuration,
+} from "../../services/meetings.service";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -23,6 +28,21 @@ export function MeetingSuccess({
   const meetLink = meeting.id
     ? `${window.location.origin}/meet/${meeting.id}`
     : (meeting.roomUrl || `${window.location.origin}/meet`);
+
+  const displayDate =
+    meeting.date ||
+    formatMeetingDate(meeting.scheduledStartAt) ||
+    "Fecha por definir";
+
+  const displayTime =
+    meeting.time ||
+    formatMeetingTime(meeting.scheduledStartAt) ||
+    "Hora por definir";
+
+  const displayDuration =
+    meeting.duration ||
+    formatMeetingDuration(meeting.estimatedDurationMinutes) ||
+    "60 min";
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(meetLink);
@@ -82,8 +102,7 @@ export function MeetingSuccess({
           {isEdit ? "Reunión actualizada" : "Reunión creada"}
         </h2>
         <p className="text-sm mb-6 text-muted-foreground">
-          {title} · {meeting.date || "Fecha por definir"} ·{" "}
-          {meeting.time || "10:00"} · {meeting.duration || "60 min"}
+          {title} · {displayDate} · {displayTime} · {displayDuration}
         </p>
 
         {/* Link box */}
@@ -129,11 +148,11 @@ export function MeetingSuccess({
         {/* Info Grid */}
         <div className="grid grid-cols-3 gap-3 mb-6 text-center">
           {[
-            { icon: Calendar, label: meeting.date || "Fecha definida" },
-            { icon: Clock, label: meeting.time || "10:00" },
+            { icon: Calendar, label: displayDate },
+            { icon: Clock, label: displayTime },
             {
               icon: Video,
-              label: meeting.duration ? `${meeting.duration}` : "60 min",
+              label: displayDuration,
             },
           ].map(({ icon: Icon, label }, idx) => (
             <div
