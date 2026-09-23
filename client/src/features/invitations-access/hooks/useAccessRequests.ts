@@ -7,7 +7,7 @@ import type {
 
 /**
  * Consulta las solicitudes de ingreso pendientes para el anfitrion.
- * Intervalo espaciado de 15 segundos, pausado si la ventana no esta visible.
+ * Intervalo de 3 segundos, pausado si la ventana no esta visible.
  */
 export function usePendingAccessRequests(
   meetingId?: string,
@@ -20,7 +20,7 @@ export function usePendingAccessRequests(
       return accessRequestService.getPendingRequests(meetingId);
     },
     enabled: Boolean(meetingId) && enabled,
-    refetchInterval: 15000,
+    refetchInterval: 3000,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
   });

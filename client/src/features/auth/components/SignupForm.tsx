@@ -1,7 +1,8 @@
+import { getAuthDestination } from "../getAuthDestination";
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { signupSchema, type SignupFormData } from "../schemas/signup.schema";
 import GoogleButton from "./GoogleButon";
 import { LoginToggle } from "./LoginToggle";
@@ -15,6 +16,7 @@ export interface SignupFormProps {
 
 export function SignupForm({ onToggleMode }: SignupFormProps = {}) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { register: registerUser, clearError } = useAuthStore();
   const [serverError, setServerError] = useState<string | null>(null);
   const [showPass, setShowPass] = useState(false);
@@ -39,7 +41,7 @@ export function SignupForm({ onToggleMode }: SignupFormProps = {}) {
         email: data.email,
         password: data.password,
       });
-      navigate("/");
+      navigate(getAuthDestination(location.state), { replace: true });
     } catch (err: unknown) {
       if (err instanceof Error) {
         setServerError(err.message);

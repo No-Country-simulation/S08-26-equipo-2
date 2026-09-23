@@ -1,3 +1,4 @@
+import { getAuthDestination } from "@/features/auth/getAuthDestination";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/features/auth";
 
@@ -25,10 +26,11 @@ export function ProtectedRoute({ children }: RouteGuardProps) {
  * si el usuario ya tiene sesión activa, lo redirige al panel principal /.
  */
 export function PublicOnlyRoute({ children }: RouteGuardProps) {
+  const location = useLocation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={getAuthDestination(location.state)} replace />;
   }
 
   return children ? <>{children}</> : <Outlet />;

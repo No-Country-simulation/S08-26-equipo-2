@@ -16,17 +16,19 @@ export interface PendingAccessRequestsListProps {
 export function PendingAccessRequestsList({
   meetingId,
 }: PendingAccessRequestsListProps) {
-  const { data: requests, isLoading } = usePendingAccessRequests(meetingId);
+  const { data: requests, isLoading, isError } = usePendingAccessRequests(meetingId);
   const approveMutation = useApproveAccessRequest();
   const rejectMutation = useRejectAccessRequest();
+  const [actionError, setActionError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const handleApprove = async (requestId: string) => {
     setProcessingId(requestId);
+    setActionError(null);
     try {
       await approveMutation.mutateAsync({ meetingId, requestId });
-    } catch (error) {
-      console.error("Error al aprobar solicitud:", error);
+    } catch {
+      setActionError("No se pudo admitir al participante. Intenta nuevamente.");
     } finally {
       setProcessingId(null);
     }
@@ -34,10 +36,11 @@ export function PendingAccessRequestsList({
 
   const handleReject = async (requestId: string) => {
     setProcessingId(requestId);
+    setActionError(null);
     try {
       await rejectMutation.mutateAsync({ meetingId, requestId });
-    } catch (error) {
-      console.error("Error al rechazar solicitud:", error);
+    } catch {
+      setActionError("No se pudo rechazar la solicitud. Intenta nuevamente.");
     } finally {
       setProcessingId(null);
     }
@@ -62,6 +65,7 @@ export function PendingAccessRequestsList({
         </Badge>
       </div>
 
+      {(actionError || isError) && <p role="alert" className="text-xs text-rose-300">{actionError || "No se pudieron consultar las solicitudes."}</p>}
       {isLoading ? (
         <div className="space-y-2">
           {[1].map((i) => (
@@ -89,7 +93,7 @@ export function PendingAccessRequestsList({
             const name = req.user?.fullName || "Usuario solicitante";
             const email = req.user?.email || "";
             const initial = (name || email || "U")[0].toUpperCase();
-            const isProcessing = processingId === req.id;
+            const isProcessing = processingId !== null;
 
             return (
               <div

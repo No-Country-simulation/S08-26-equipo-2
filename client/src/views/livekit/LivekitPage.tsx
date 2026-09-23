@@ -1,4 +1,7 @@
+import { PendingAccessRequestsList } from "@/features/invitations-access/components/PendingAccessRequestsList";
+import { usePendingAccessRequests } from "@/features/invitations-access/hooks/useAccessRequests";
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -20,7 +23,7 @@ import {
   useTracks,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/components-react";
-import { ConnectionState, Track } from "livekit-client";
+import { ConnectionError, ConnectionState, Track } from "livekit-client";
 import {
   Camera,
   CameraOff,
@@ -46,6 +49,7 @@ interface Props {
   serverUrl?: string;
   token?: string;
   onLeave?: () => void;
+  onRetry?: () => void;
 }
 
 const initials = (name: string) =>
@@ -153,6 +157,8 @@ function RoomView({ meeting, onLeave }: Props) {
     isScreenShareEnabled,
   } = useLocalParticipant();
   const { chatMessages, send, isSending } = useChat();
+  const isHost = Boolean(meeting?.hostId && localParticipant.identity === meeting.hostId);
+  const { data: pendingRequests = [] } = usePendingAccessRequests(meeting?.id, isHost);
   const [pinned, setPinned] = useState<string>();
   const [panel, setPanel] = useState<"chat" | "people" | null>(null);
   const [more, setMore] = useState(false);
@@ -341,6 +347,7 @@ function RoomView({ meeting, onLeave }: Props) {
               </>
             ) : (
               <div className="call-people">
+                {isHost && meeting?.id && <section className="mb-4"><PendingAccessRequestsList meetingId={meeting.id} /></section>}
                 {participants.map((person) => (
                   <div key={person.identity}>
                     <span className="call-person-avatar">
@@ -417,6 +424,7 @@ function RoomView({ meeting, onLeave }: Props) {
           </Control>
           <Control
             label="Personas"
+            badge={pendingRequests.length}
             active={panel === "people"}
             onClick={() => togglePanel("people")}
           >
@@ -487,6 +495,7 @@ export default function LivekitPage({
   serverUrl,
   token,
   onLeave,
+  onRetry,
 }: Props) {
   const livekitUrl = import.meta.env.VITE_LIVEKIT_URL;
   const media = useMediaSettingsStore();
@@ -496,7 +505,22 @@ export default function LivekitPage({
   } | null>(null);
   const [error, setError] = useState("");
   const [ended, setEnded] = useState(false);
+  const [withoutDevices, setWithoutDevices] = useState(false);
   const url = credentials?.url || serverUrl || livekitUrl;
+  const handleError = useCallback((cause: Error) => {
+    const detail = cause.message || cause.name;
+    if (cause instanceof ConnectionError) {
+      setError(`No se pudo conectar a LiveKit: ${detail}. Verifica que el token no haya expirado y corresponda al servidor indicado.`);
+      setEnded(true);
+      setCredentials(null);
+    } else {
+      setError(`No se pudo activar un dispositivo o publicar una pista: ${detail}. Puedes permanecer en la sala y volver a activar cámara o micrófono.`);
+    }
+  }, []);
+  const handleDisconnected = useCallback(() => {
+    setEnded(true);
+    setCredentials(null);
+  }, []);
   const accessToken = credentials?.token || token;
   const [options] = useState(() => ({
     adaptiveStream: true,
@@ -505,6 +529,14 @@ export default function LivekitPage({
     videoCaptureDefaults: { deviceId: media.selectedCamera || undefined },
     audioOutput: { deviceId: media.selectedSpeaker || "default" },
   }));
+  if (onRetry && (!url || !accessToken || ended)) {
+    return <div className="call-entry"><div className="call-rejoin">
+      <h1>{error ? "No pudimos conectarte" : "Has salido de la reunión"}</h1>
+      <p role={error ? "alert" : undefined}>{error ? "No fue posible conectar con la sala. Vuelve a intentarlo para obtener un nuevo acceso." : "Puedes volver a la sala previa para ingresar nuevamente."}</p>
+      <button className="call-connect" onClick={onRetry}>Volver a la sala previa</button>
+      <button onClick={onLeave}>Volver a reuniones</button>
+    </div></div>;
+  }
   if (!url || !accessToken || ended)
     return (
       <div className="call-entry">
@@ -553,6 +585,10 @@ export default function LivekitPage({
             Token de participante
             <input name="token" type="password" autoComplete="off" required />
           </label>
+          <label style={{ flexDirection: "row", alignItems: "center" }}>
+            <input type="checkbox" checked={withoutDevices} onChange={event => setWithoutDevices(event.target.checked)} />
+            Entrar sin cámara ni micrófono
+          </label>
           {error && (
             <p role="alert" className="call-muted">
               {error}
@@ -575,21 +611,13 @@ export default function LivekitPage({
         serverUrl={url}
         token={accessToken}
         connect
-        audio={media.isMicActive}
-        video={media.isCameraActive}
+        audio={!withoutDevices && media.isMicActive}
+        video={!withoutDevices && media.isCameraActive}
         options={options}
-        onError={() => {
-          setError(
-            "No se pudo conectar. Comprueba el servidor, el token y los permisos de cámara y micrófono.",
-          );
-          setEnded(true);
-          setCredentials(null);
-        }}
-        onDisconnected={() => {
-          setEnded(true);
-          setCredentials(null);
-        }}
+        onError={handleError}
+        onDisconnected={handleDisconnected}
       >
+        {error && <div className="call-error" role="alert">{error}<button aria-label="Cerrar aviso" onClick={() => setError("")}><X size={16} /></button></div>}
         <RoomView meeting={meeting} onLeave={onLeave} />
       </LiveKitRoom>
     </>

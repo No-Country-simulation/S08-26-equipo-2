@@ -1,3 +1,4 @@
+import { useAutoJoinAfterApproval } from "../hooks/useAutoJoinAfterApproval";
 import { useState, useEffect, useRef } from "react";
 import { useMediaSettingsStore } from "@/features/settings/stores/useMediaSettingsStore";
 import {
@@ -36,6 +37,7 @@ export interface WaitingRoomProps {
   isAdmittedParticipant?: boolean;
   initialStatus?: WaitingRoomStatus;
   onJoin?: () => void;
+  isJoining?: boolean;
   onRefreshMeeting: () => Promise<unknown> | void;
   onLeave: () => void;
 }
@@ -67,6 +69,7 @@ export function WaitingRoom({
   isAdmittedParticipant = false,
   initialStatus = "INITIAL",
   onJoin,
+  isJoining = false,
   onRefreshMeeting,
   onLeave,
 }: WaitingRoomProps) {
@@ -225,7 +228,7 @@ export function WaitingRoom({
 
   const scheduleState = calculateScheduleState();
 
-  // Polling automatico cada 10 segundos UNICAMENTE si envió solicitud (PENDING), no tiene acceso aun, y con maximo de 1 minuto (60 s)
+  // Consultar mientras la solicitud siga pendiente, sin caducar al minuto.
   useEffect(() => {
     // Si ya tiene acceso directo (host o admitido), no esta en PENDING, o aun NO es la hora: NO hacer sondeo
     if (
@@ -238,18 +241,14 @@ export function WaitingRoom({
       return;
     }
 
-    // Si ya alcanzo el limite de 1 minuto (60 s), detener el sondeo automatico para proteger el backend
-    if (pollDurationSeconds >= 60) {
-      return;
-    }
 
     const interval = setInterval(() => {
       // Optimización: si la pestaña está oculta/minimizada, pausar sondeo
       if (document.hidden) return;
 
-      setPollDurationSeconds((sec) => sec + 10);
+      setPollDurationSeconds((sec) => sec + 3);
       onRefreshMeeting();
-    }, 10000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [
@@ -257,7 +256,6 @@ export function WaitingRoom({
     isAdmittedParticipant,
     status,
     scheduleState.isTime,
-    pollDurationSeconds,
     onRefreshMeeting,
   ]);
   const displayTitle = meeting.title || meeting.name || "Reunión sin título";
@@ -321,12 +319,15 @@ export function WaitingRoom({
   const handleJoinCall = () => {
     useMediaSettingsStore.getState().setIsCameraActive(cam);
     useMediaSettingsStore.getState().setIsMicActive(mic);
-    // Detener la camara antes de entrar a LiveKit
-    if (mediaStream) {
-      mediaStream.getTracks().forEach((t) => t.stop());
-    }
     onJoin?.();
   };
+
+  useAutoJoinAfterApproval({
+    meetingId: meeting.id,
+    enabled: !isHost && status === "PENDING" && isAdmittedParticipant && scheduleState.isTime && !scheduleState.isFinished,
+    isJoining,
+    onJoin: handleJoinCall,
+  });
 
   const hasAccess = isHost || isAdmittedParticipant;
 
@@ -623,10 +624,11 @@ export function WaitingRoom({
                   <div className="space-y-3">
                     <button
                       onClick={handleJoinCall}
+                      disabled={isJoining}
                       className="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-500/20"
                     >
                       <Video className="w-4 h-4" />
-                      Ingresar a la reunión
+                      {isJoining ? "Preparando tu acceso…" : "Entrar a la reunión"}
                     </button>
                   </div>
                 ) : status === "PENDING" ? (
@@ -674,7 +676,7 @@ export function WaitingRoom({
 
                     {pollDurationSeconds >= 60 && (
                       <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
-                        El anfitrión aún no ha respondido. Puedes pulsar &quot;Comprobar estado ahora&quot; cuando lo desees.
+                        Seguimos comprobando tu acceso. Entrarás automáticamente cuando el anfitrión te admita.
                       </p>
                     )}
 
