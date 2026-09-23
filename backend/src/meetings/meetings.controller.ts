@@ -5,6 +5,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -30,12 +31,18 @@ import {
 } from './dto/meeting-link.dto.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
+import { ChatService } from '../chat/chat.service.js';
+import { ChatMessageResponseDto } from '../chat/dto/chat-message-response.dto.js';
+import { ListMessagesQueryDto } from '../chat/dto/list-messages-query.dto.js';
 
 @ApiTags('meetings')
 @UseGuards(JwtAuthGuard)
 @Controller('meetings')
 export class MeetingsController {
-  constructor(private readonly meetingsService: MeetingsService) {}
+  constructor(
+    private readonly meetingsService: MeetingsService,
+    private readonly chatService: ChatService,
+  ) {}
 
   // Crear una reunión programada (agenda)
   @Post()
@@ -121,6 +128,26 @@ export class MeetingsController {
   @ApiUnauthorizedResponse({ description: 'Access token inválido o ausente' })
   findParticipants(@Param('id') id: string, @CurrentUser() user: any) {
     return this.meetingsService.findParticipants(id, user.id);
+  }
+
+  // Tarea 4: historial de mensajes del chat de la reunión
+  @Get(':id/messages')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Historial de mensajes del chat de la reunión' })
+  @ApiOkResponse({
+    description:
+      'Mensajes del chat (los más recientes primero; admite paginación con el parámetro before).',
+    type: [ChatMessageResponseDto],
+  })
+  @ApiNotFoundResponse({ description: 'Reunión no encontrada' })
+  @ApiForbiddenResponse({ description: 'No perteneces a esta reunión' })
+  @ApiUnauthorizedResponse({ description: 'Access token inválido o ausente' })
+  findMessages(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Query() query: ListMessagesQueryDto,
+  ) {
+    return this.chatService.listMessages(id, user.id, query);
   }
 
   // Salir voluntariamente de la reunión

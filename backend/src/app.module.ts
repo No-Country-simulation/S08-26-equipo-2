@@ -9,6 +9,7 @@ import { MeetingsModule } from './meetings/meetings.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { AccessRequestsModule } from './access-requests/access-requests.module.js';
 import { LivekitModule } from './livekit/livekit.module.js';
+import { ChatModule } from './chat/chat.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { LivekitModule } from './livekit/livekit.module.js';
     AuthModule,
     AccessRequestsModule,
     LivekitModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],
