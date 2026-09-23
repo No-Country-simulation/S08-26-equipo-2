@@ -1,5 +1,5 @@
 import { Controller } from "react-hook-form";
-import { Calendar, ChevronRight, Clock, RefreshCw } from "lucide-react";
+import { AlertTriangle, Calendar, ChevronRight, Clock, RefreshCw } from "lucide-react";
 import { useFormMeetings, getTodayDateString } from "../../hooks/useFormMeetings";
 import { DURATION_OPTIONS, type MeetingFormProps } from "../../types/meeting";
 
@@ -27,6 +27,7 @@ export function MeetingForm({
     control,
     watch,
     errors,
+    apiError,
     onSubmit,
     isEdit,
     isPending,
@@ -196,6 +197,17 @@ export function MeetingForm({
             {...register("description")}
           />
         </div>
+
+        {/* Banner de error del servidor */}
+        {apiError && (
+          <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/25 text-destructive text-xs flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="flex-1 leading-relaxed">
+              <span className="font-semibold block mb-0.5">Error al procesar la reunión</span>
+              <span>{apiError}</span>
+            </div>
+          </div>
+        )}
 
         {/* Botón de Enviar */}
         <Button

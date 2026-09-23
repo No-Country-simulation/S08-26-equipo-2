@@ -12,6 +12,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
 
 export interface MeetingRowProps {
   meeting: Meeting;
@@ -30,6 +31,8 @@ export const MeetingRow = memo(function MeetingRow({
   onCancel,
   onViewDetails,
 }: MeetingRowProps) {
+  const { user } = useAuthStore();
+  const isHost = Boolean(user?.id && m.hostId && user.id === m.hostId);
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -155,7 +158,7 @@ export const MeetingRow = memo(function MeetingRow({
                   )}
                 </DropdownMenuItem>
 
-                {m.status !== "FINISHED" && m.status !== "CANCELLED" && onCancel && (
+                {isHost && m.status !== "FINISHED" && m.status !== "CANCELLED" && onCancel && (
                   <DropdownMenuItem
                     variant="destructive"
                     onClick={() => {

@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { useForm } from "react-hook-form";
 import { useCreateMeeting, useUpdateMeeting } from "./useMeetings";
 import type { Meeting } from "../types/meeting";
@@ -64,6 +65,7 @@ const parseDuration = (duration?: string | null): string => {
 
 export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps = {}) {
   const isEdit = Boolean(initialData?.id);
+  const [apiError, setApiError] = useState<string | null>(null);
   const createMutation = useCreateMeeting();
   const updateMutation = useUpdateMeeting();
 
@@ -143,6 +145,7 @@ export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps
   } = form;
 
   const onSubmit = async (data: CreateMeetingFormData) => {
+    setApiError(null);
     try {
       const durationMinutes = parseInt(data.duration, 10) || 60;
       let scheduledStartAt: string | undefined;
@@ -178,8 +181,22 @@ export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps
         const newMeeting = await createMutation.mutateAsync(payload);
         onSuccess?.(newMeeting);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(isEdit ? "Error al actualizar la reunión:" : "Error al crear la reunión:", err);
+      let message = isEdit ? "No se pudo actualizar la reunión." : "No se pudo crear la reunión.";
+      if (axios.isAxiosError(err)) {
+        const serverMsg = err.response?.data?.message;
+        if (Array.isArray(serverMsg)) {
+          message = serverMsg.join(", ");
+        } else if (typeof serverMsg === "string") {
+          message = serverMsg;
+        } else if (err.response?.data?.error) {
+          message = String(err.response.data.error);
+        }
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      setApiError(message);
     }
   };
 
@@ -189,6 +206,8 @@ export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps
     control,
     watch: form.watch,
     errors,
+    apiError,
+    clearApiError: () => setApiError(null),
     setValue,
     onSubmit: handleSubmit(onSubmit),
     isEdit,
