@@ -1,6 +1,6 @@
 import { Controller } from "react-hook-form";
-import { ChevronRight, RefreshCw } from "lucide-react";
-import { useFormMeetings } from "../../hooks/useFormMeetings";
+import { Calendar, ChevronRight, Clock, RefreshCw } from "lucide-react";
+import { useFormMeetings, getTodayDateString } from "../../hooks/useFormMeetings";
 import { DURATION_OPTIONS, type MeetingFormProps } from "../../types/meeting";
 
 // Componentes de Shadcn UI
@@ -25,11 +25,21 @@ export function MeetingForm({
   const {
     register,
     control,
+    watch,
     errors,
     onSubmit,
     isEdit,
     isPending,
   } = useFormMeetings({ initialData, onSuccess });
+
+  const todayStr = getTodayDateString();
+  const selectedDate = watch("date");
+  const isToday = selectedDate === todayStr;
+
+  const now = new Date();
+  const currentHours = String(now.getHours()).padStart(2, "0");
+  const currentMinutes = String(now.getMinutes()).padStart(2, "0");
+  const currentTimeStr = `${currentHours}:${currentMinutes}`;
 
   return (
     <form onSubmit={onSubmit} className={`space-y-5 ${className}`}>
@@ -72,14 +82,19 @@ export function MeetingForm({
             >
               Fecha *
             </Label>
-            <Input
-              id="date"
-              type="date"
-              className={`w-full py-2.5 px-3 text-sm bg-card border-border ${
-                errors.date ? "border-destructive" : ""
-              }`}
-              {...register("date")}
-            />
+            <div className="relative flex items-center">
+              <Input
+                id="date"
+                type="date"
+                min={todayStr}
+                style={{ colorScheme: "dark" }}
+                className={`w-full py-2.5 pl-3 pr-10 text-sm bg-card border-border text-foreground cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                  errors.date ? "border-destructive" : ""
+                }`}
+                {...register("date")}
+              />
+              <Calendar className="w-4 h-4 text-white absolute right-3 pointer-events-none" />
+            </div>
             {errors.date && (
               <p className="text-xs text-destructive mt-1 font-medium">
                 {errors.date.message}
@@ -96,14 +111,19 @@ export function MeetingForm({
             >
               Hora *
             </Label>
-            <Input
-              id="time"
-              type="time"
-              className={`w-full py-2.5 px-3 text-sm bg-card border-border ${
-                errors.time ? "border-destructive" : ""
-              }`}
-              {...register("time")}
-            />
+            <div className="relative flex items-center">
+              <Input
+                id="time"
+                type="time"
+                min={isToday ? currentTimeStr : undefined}
+                style={{ colorScheme: "dark" }}
+                className={`w-full py-2.5 pl-3 pr-10 text-sm bg-card border-border text-foreground cursor-pointer [color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer ${
+                  errors.time ? "border-destructive" : ""
+                }`}
+                {...register("time")}
+              />
+              <Clock className="w-4 h-4 text-white absolute right-3 pointer-events-none" />
+            </div>
             {errors.time && (
               <p className="text-xs text-destructive mt-1 font-medium">
                 {errors.time.message}

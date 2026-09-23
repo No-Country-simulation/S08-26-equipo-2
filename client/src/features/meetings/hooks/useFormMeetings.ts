@@ -12,18 +12,39 @@ export interface UseFormMeetingsProps {
   onSuccess?: (meeting: Meeting) => void;
 }
 
+export const getTodayDateString = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+export const getDefaultTimeString = (): string => {
+  const now = new Date();
+  // Sugerir 15 minutos en el futuro redondeado a multiplo de 5
+  now.setMinutes(Math.ceil((now.getMinutes() + 15) / 5) * 5);
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+};
+
 const formatDateForInput = (dateStr?: string | null): string => {
-  if (!dateStr) return new Date().toISOString().split("T")[0];
+  if (!dateStr) return getTodayDateString();
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
   const parsed = Date.parse(dateStr);
   if (!isNaN(parsed)) {
-    return new Date(parsed).toISOString().split("T")[0];
+    const d = new Date(parsed);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
-  return new Date().toISOString().split("T")[0];
+  return getTodayDateString();
 };
 
 const formatTimeForInput = (timeOrIso?: string | null): string => {
-  if (!timeOrIso) return "10:00";
+  if (!timeOrIso) return getDefaultTimeString();
   if (/^\d{2}:\d{2}$/.test(timeOrIso)) return timeOrIso;
   const parsed = Date.parse(timeOrIso);
   if (!isNaN(parsed)) {
@@ -32,7 +53,7 @@ const formatTimeForInput = (timeOrIso?: string | null): string => {
     const minutes = String(d.getMinutes()).padStart(2, "0");
     return `${hours}:${minutes}`;
   }
-  return "10:00";
+  return getDefaultTimeString();
 };
 
 const parseDuration = (duration?: string | null): string => {
@@ -136,6 +157,7 @@ export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps
     form,
     register,
     control,
+    watch: form.watch,
     errors,
     setValue,
     onSubmit: handleSubmit(onSubmit),
