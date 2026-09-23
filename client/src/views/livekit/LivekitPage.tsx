@@ -488,6 +488,7 @@ export default function LivekitPage({
   token,
   onLeave,
 }: Props) {
+  const livekitUrl = import.meta.env.VITE_LIVEKIT_URL;
   const media = useMediaSettingsStore();
   const [credentials, setCredentials] = useState<{
     url: string;
@@ -495,7 +496,7 @@ export default function LivekitPage({
   } | null>(null);
   const [error, setError] = useState("");
   const [ended, setEnded] = useState(false);
-  const url = credentials?.url || serverUrl;
+  const url = credentials?.url || serverUrl || livekitUrl;
   const accessToken = credentials?.token || token;
   const [options] = useState(() => ({
     adaptiveStream: true,
@@ -544,7 +545,7 @@ export default function LivekitPage({
             <input
               name="url"
               placeholder="wss://tu-proyecto.livekit.cloud"
-              defaultValue={serverUrl || ""}
+              defaultValue={url || ""}
               required
             />
           </label>
