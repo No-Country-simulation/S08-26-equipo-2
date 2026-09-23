@@ -12,6 +12,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { useAuthStore } from "@/features/auth/store/useAuthStore";
 
 export interface MeetingRowProps {
   meeting: Meeting;
@@ -24,10 +25,14 @@ export interface MeetingRowProps {
 export const MeetingRow = memo(function MeetingRow({
   meeting: m,
   onJoin,
+  // TODO: Habilitar onEdit cuando el endpoint PATCH /meetings/:id esté completamente operativo en el backend.
+  // Recomendación: permitir editar únicamente título y descripción, manteniendo fecha y hora bloqueadas.
   // onEdit,
   onCancel,
   onViewDetails,
 }: MeetingRowProps) {
+  const { user } = useAuthStore();
+  const isHost = Boolean(user?.id && m.hostId && user.id === m.hostId);
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -136,6 +141,8 @@ export const MeetingRow = memo(function MeetingRow({
                   Ver detalles
                 </DropdownMenuItem>
 
+                {/* TODO: Agregar opción de "Editar reunión" aquí cuando el endpoint PATCH esté disponible en backend */}
+
                 <DropdownMenuItem
                   onClick={() => {
                     setMenuOpen(false);
@@ -151,7 +158,7 @@ export const MeetingRow = memo(function MeetingRow({
                   )}
                 </DropdownMenuItem>
 
-                {m.status !== "FINISHED" && m.status !== "CANCELLED" && onCancel && (
+                {isHost && m.status !== "FINISHED" && m.status !== "CANCELLED" && onCancel && (
                   <DropdownMenuItem
                     variant="destructive"
                     onClick={() => {

@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 import { useForm } from "react-hook-form";
 import { useCreateMeeting, useUpdateMeeting } from "./useMeetings";
 import type { Meeting } from "../types/meeting";
@@ -12,18 +13,39 @@ export interface UseFormMeetingsProps {
   onSuccess?: (meeting: Meeting) => void;
 }
 
+export const getTodayDateString = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+export const getDefaultTimeString = (): string => {
+  const now = new Date();
+  // Sugerir 15 minutos en el futuro redondeado a multiplo de 5
+  now.setMinutes(Math.ceil((now.getMinutes() + 15) / 5) * 5);
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+};
+
 const formatDateForInput = (dateStr?: string | null): string => {
-  if (!dateStr) return new Date().toISOString().split("T")[0];
+  if (!dateStr) return getTodayDateString();
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
   const parsed = Date.parse(dateStr);
   if (!isNaN(parsed)) {
-    return new Date(parsed).toISOString().split("T")[0];
+    const d = new Date(parsed);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
-  return new Date().toISOString().split("T")[0];
+  return getTodayDateString();
 };
 
 const formatTimeForInput = (timeOrIso?: string | null): string => {
-  if (!timeOrIso) return "10:00";
+  if (!timeOrIso) return getDefaultTimeString();
   if (/^\d{2}:\d{2}$/.test(timeOrIso)) return timeOrIso;
   const parsed = Date.parse(timeOrIso);
   if (!isNaN(parsed)) {
@@ -32,7 +54,7 @@ const formatTimeForInput = (timeOrIso?: string | null): string => {
     const minutes = String(d.getMinutes()).padStart(2, "0");
     return `${hours}:${minutes}`;
   }
-  return "10:00";
+  return getDefaultTimeString();
 };
 
 const parseDuration = (duration?: string | null): string => {
@@ -43,6 +65,7 @@ const parseDuration = (duration?: string | null): string => {
 
 export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps = {}) {
   const isEdit = Boolean(initialData?.id);
+  const [apiError, setApiError] = useState<string | null>(null);
   const createMutation = useCreateMeeting();
   const updateMutation = useUpdateMeeting();
 
@@ -61,6 +84,33 @@ export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps
   const form = useForm<CreateMeetingFormData>({
     defaultValues: getFormValues(),
     resolver: async (values) => {
+      // En modo edición la fecha y hora están fijas; solo se valida que el título cumpla los requisitos
+      if (isEdit) {
+        if (!values.title || values.title.trim().length < 3) {
+          return {
+            values: {},
+            errors: {
+              title: {
+                type: "custom",
+                message: "El título debe tener al menos 3 caracteres",
+              },
+            },
+          };
+        }
+        if (values.title.length > 150) {
+          return {
+            values: {},
+            errors: {
+              title: {
+                type: "custom",
+                message: "El título no puede exceder 150 caracteres",
+              },
+            },
+          };
+        }
+        return { values, errors: {} };
+      }
+
       const result = createMeetingSchema.safeParse(values);
       if (result.success) {
         return { values: result.data, errors: {} };
@@ -95,6 +145,7 @@ export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps
   } = form;
 
   const onSubmit = async (data: CreateMeetingFormData) => {
+    setApiError(null);
     try {
       const durationMinutes = parseInt(data.duration, 10) || 60;
       let scheduledStartAt: string | undefined;
@@ -109,26 +160,43 @@ export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps
         }
       }
 
-      const payload = {
-        title: data.title,
-        description: data.description || undefined,
-        scheduledStartAt,
-        scheduledEndAt,
-        estimatedDurationMinutes: durationMinutes,
-      };
-
       if (isEdit && initialData?.id) {
+        // En modo edición solo se actualizan título y descripción
         const updatedMeeting = await updateMutation.mutateAsync({
           id: initialData.id,
-          payload,
+          payload: {
+            title: data.title,
+            description: data.description || undefined,
+          },
         });
         onSuccess?.(updatedMeeting);
       } else {
+        const payload = {
+          title: data.title,
+          description: data.description || undefined,
+          scheduledStartAt,
+          scheduledEndAt,
+          estimatedDurationMinutes: durationMinutes,
+        };
         const newMeeting = await createMutation.mutateAsync(payload);
         onSuccess?.(newMeeting);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(isEdit ? "Error al actualizar la reunión:" : "Error al crear la reunión:", err);
+      let message = isEdit ? "No se pudo actualizar la reunión." : "No se pudo crear la reunión.";
+      if (axios.isAxiosError(err)) {
+        const serverMsg = err.response?.data?.message;
+        if (Array.isArray(serverMsg)) {
+          message = serverMsg.join(", ");
+        } else if (typeof serverMsg === "string") {
+          message = serverMsg;
+        } else if (err.response?.data?.error) {
+          message = String(err.response.data.error);
+        }
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      setApiError(message);
     }
   };
 
@@ -136,7 +204,10 @@ export function useFormMeetings({ initialData, onSuccess }: UseFormMeetingsProps
     form,
     register,
     control,
+    watch: form.watch,
     errors,
+    apiError,
+    clearApiError: () => setApiError(null),
     setValue,
     onSubmit: handleSubmit(onSubmit),
     isEdit,

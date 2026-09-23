@@ -368,6 +368,11 @@
   .fade-in {
     animation: fade-in 0.3s ease-out;
   }
+
+  input[type="date"],
+  input[type="time"] {
+    color-scheme: dark;
+  }
 }
 
 @keyframes fade-in {

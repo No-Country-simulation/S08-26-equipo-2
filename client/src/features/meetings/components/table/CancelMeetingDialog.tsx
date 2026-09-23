@@ -18,6 +18,7 @@ export interface CancelMeetingDialogProps {
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
   isPending?: boolean;
+  errorMessage?: string | null;
 }
 
 export function CancelMeetingDialog({
@@ -26,6 +27,7 @@ export function CancelMeetingDialog({
   onOpenChange,
   onConfirm,
   isPending = false,
+  errorMessage = null,
 }: CancelMeetingDialogProps) {
   if (!meeting) return null;
 
@@ -46,6 +48,13 @@ export function CancelMeetingDialog({
             <span className="font-semibold text-foreground">"{displayTitle}"</span>?
             Esta acción concluirá la reunión y desconectará a los participantes.
           </AlertDialogDescription>
+
+          {errorMessage && (
+            <div className="mt-3 p-3 rounded-xl bg-destructive/15 border border-destructive/30 text-destructive text-xs flex items-center gap-2 text-left">
+              <AlertTriangle className="size-4 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
         </AlertDialogHeader>
 
         <AlertDialogFooter className="gap-2 pt-4 border-t border-border/40">
