@@ -3,9 +3,7 @@ import { usePendingAccessRequests } from "@/features/invitations-access/hooks/us
 import {
   useCallback,
   useEffect,
-  useRef,
   useState,
-  type FormEvent,
   type ReactNode,
 } from "react";
 import {
@@ -14,7 +12,6 @@ import {
   StartAudio,
   VideoTrack,
   isTrackReference,
-  useChat,
   useConnectionState,
   useLocalParticipant,
   useParticipants,
@@ -23,6 +20,7 @@ import {
   useTracks,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/components-react";
+import { useMeetingChat, ChatPanel } from "@/features/chat";
 import { ConnectionError, ConnectionState, Track } from "livekit-client";
 import {
   Camera,
@@ -36,7 +34,6 @@ import {
   Monitor,
   MoreHorizontal,
   PhoneOff,
-  Send,
   Users,
   X,
 } from "lucide-react";
@@ -156,28 +153,22 @@ function RoomView({ meeting, onLeave }: Props) {
     isMicrophoneEnabled,
     isScreenShareEnabled,
   } = useLocalParticipant();
-  const { chatMessages, send, isSending } = useChat();
+  const { messages: chatMessages } = useMeetingChat(meeting?.id);
   const isHost = Boolean(meeting?.hostId && localParticipant.identity === meeting.hostId);
   const { data: pendingRequests = [] } = usePendingAccessRequests(meeting?.id, isHost);
   const [pinned, setPinned] = useState<string>();
   const [panel, setPanel] = useState<"chat" | "people" | null>(null);
   const [more, setMore] = useState(false);
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [seen, setSeen] = useState(0);
   const [started] = useState(() => Date.now());
   const [now, setNow] = useState(started);
-  const chatEnd = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
-  useEffect(() => {
-    if (panel === "chat")
-      chatEnd.current?.scrollIntoView({ behavior: "smooth" });
-  }, [panel, chatMessages.length]);
   const featured =
     tracks.find((track) => trackKey(track) === pinned) ??
     tracks.find((track) => track.source === Track.Source.ScreenShare) ??
@@ -219,15 +210,6 @@ function RoomView({ meeting, onLeave }: Props) {
   const togglePanel = (next: "chat" | "people") => {
     if (panel === "chat" || next === "chat") setSeen(chatMessages.length);
     setPanel(panel === next ? null : next);
-  };
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    const text = message.trim();
-    if (text)
-      void run(async () => {
-        await send(text);
-        setMessage("");
-      });
   };
   return (
     <div className="call-room">
@@ -285,90 +267,50 @@ function RoomView({ meeting, onLeave }: Props) {
             ))}
           </aside>
         )}
-        {panel && (
+        {panel === "chat" && (
+          <ChatPanel
+            meetingId={meeting?.id}
+            hostId={meeting?.hostId}
+            onClose={() => togglePanel("chat")}
+          />
+        )}
+        {panel === "people" && (
           <aside className="call-panel">
             <header>
-              <h2>
-                {panel === "chat"
-                  ? "Chat de la reunión"
-                  : `Personas (${participants.length})`}
-              </h2>
+              <h2>Personas ({participants.length})</h2>
               <button
-                onClick={() => togglePanel(panel)}
+                onClick={() => togglePanel("people")}
                 aria-label="Cerrar panel"
               >
                 <X size={18} />
               </button>
             </header>
-            {panel === "chat" ? (
-              <>
-                <div className="call-messages" role="log" aria-live="polite">
-                  {chatMessages.length === 0 && (
-                    <p className="call-hint">
-                      Comienza la conversación. Los mensajes solo están
-                      disponibles durante esta sesión.
-                    </p>
-                  )}
-                  {chatMessages.map((item, index) => (
-                    <article key={`${item.timestamp}-${index}`}>
-                      <div>
-                        <strong>
-                          {item.from?.name ||
-                            item.from?.identity ||
-                            "Participante"}
-                        </strong>
-                        <time>
-                          {new Date(item.timestamp).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </time>
-                      </div>
-                      <p>{item.message}</p>
-                    </article>
-                  ))}
-                  <div ref={chatEnd} />
-                </div>
-                <form className="call-compose" onSubmit={submit}>
-                  <input
-                    aria-label="Mensaje"
-                    placeholder="Escribe un mensaje…"
-                    value={message}
-                    onChange={(event) => setMessage(event.target.value)}
-                    maxLength={4000}
-                  />
-                  <button
-                    aria-label="Enviar mensaje"
-                    disabled={!connected || isSending || !message.trim()}
-                  >
-                    <Send size={18} />
-                  </button>
-                </form>
-              </>
-            ) : (
-              <div className="call-people">
-                {isHost && meeting?.id && <section className="mb-4"><PendingAccessRequestsList meetingId={meeting.id} /></section>}
-                {participants.map((person) => (
-                  <div key={person.identity}>
-                    <span className="call-person-avatar">
-                      {initials(person.name || person.identity)}
-                    </span>
-                    <span>
-                      {person.name || person.identity}
-                      {person.isLocal && " (Tú)"}
-                      {person.identity === meeting?.hostId && (
-                        <small>Anfitrión</small>
-                      )}
-                    </span>
-                    {person.isMicrophoneEnabled ? (
-                      <Mic size={15} />
-                    ) : (
-                      <MicOff size={15} className="call-muted" />
+            <div className="call-people">
+              {isHost && meeting?.id && (
+                <section className="mb-4">
+                  <PendingAccessRequestsList meetingId={meeting.id} />
+                </section>
+              )}
+              {participants.map((person) => (
+                <div key={person.identity}>
+                  <span className="call-person-avatar">
+                    {initials(person.name || person.identity)}
+                  </span>
+                  <span>
+                    {person.name || person.identity}
+                    {person.isLocal && " (Tú)"}
+                    {person.identity === meeting?.hostId && (
+                      <small>Anfitrión</small>
                     )}
-                  </div>
-                ))}
-              </div>
-            )}
+                  </span>
+                  {person.isMicrophoneEnabled ? (
+                    <Mic size={15} />
+                  ) : (
+                    <MicOff size={15} className="call-muted" />
+                  )}
+                </div>
+              ))}
+            </div>
           </aside>
         )}
       </main>
