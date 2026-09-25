@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { HistoryChatSection } from "./HistoryChatSection";
 
 export interface HistoryDetailsSheetProps {
   meeting: HistoryMeetingUI | null;
@@ -173,6 +174,13 @@ export const HistoryDetailsSheet = memo(function HistoryDetailsSheet({
               )}
             </div>
           </div>
+
+          {/* Historial de Mensajes del Chat */}
+          <HistoryChatSection
+            meetingId={meeting.id}
+            hostId={meeting.hostId}
+            enabled={open}
+          />
         </div>
 
         {/* Pie del Sheet */}
