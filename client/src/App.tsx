@@ -13,6 +13,7 @@ import { AuthView, ForgotPasswordView } from "./features/auth";
 import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
 import { MeetingRoomView } from "./views/MeetingRoomView";
 import { HistoryView } from "./features/history";
+import { AgendaScreen } from "./features/agenda";
 
 const router = createBrowserRouter([
   {
@@ -68,6 +69,14 @@ const router = createBrowserRouter([
           {
             path: "/meetings/edit/:id",
             element: <EditMeetingScreen />,
+          },
+          {
+            path: "/calendar",
+            element: <AgendaScreen />,
+          },
+          {
+            path: "/agenda",
+            element: <Navigate to="/calendar" replace />,
           },
           {
             path: "/history",
