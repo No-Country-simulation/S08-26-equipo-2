@@ -34,7 +34,7 @@ const items = [
   { id: "dashboard", label: "Inicio", icon: LayoutDashboard, href: "/" },
   { id: "create-meeting", label: "Crear reunión", icon: Plus, href: "/meetings/create" },
   { id: "my-meetings", label: "Mis reuniones", icon: Users, href: "/meetings" },
-  { id: "calendar", label: "Calendario", icon: CalendarDays, href: "/meetings" },
+  { id: "calendar", label: "Calendario", icon: CalendarDays, href: "/calendar" },
   { id: "history", label: "Historial", icon: History, href: "/history" },
   { id: "settings", label: "Configuración", icon: Settings, href: "/settings" },
 ] as const;
@@ -72,6 +72,9 @@ export function Sidebar({ current, onNav, className }: SidebarProps) {
     }
     if (item.id === "settings") {
       return location.pathname === "/settings";
+    }
+    if (item.id === "calendar") {
+      return location.pathname === "/calendar" || location.pathname === "/agenda";
     }
     if (item.id === "my-meetings" && location.pathname === "/meetings" && !location.search.includes("tab=history")) {
       return true;
