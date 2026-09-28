@@ -43,7 +43,7 @@ export function MeetingRoomView() {
   const isAdmittedParticipant = participants.some((p) => {
     if (typeof p === "object" && p !== null) {
       const participantUserId = p.user?.id;
-      return participantUserId === user?.id && ["CONNECTED", "RECONNECTING", "DISCONNECTED"].includes(p.connectionStatus);
+      return participantUserId === user?.id;
     }
     return false;
   });
