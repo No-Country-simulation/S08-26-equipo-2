@@ -12,6 +12,7 @@ import LivekitPage from "./livekit/LivekitPage";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowLeft } from "lucide-react";
+import { MeetingEndedScreen } from "@/features/meetings";
 
 /**
  * Vista central orquestadora de reuniones (/meet/:id).
@@ -25,6 +26,7 @@ export function MeetingRoomView() {
   const { clearRequest } = useAccessRequestStore();
 
   const [inCall, setInCall] = useState(false);
+  const [meetingEnded, setMeetingEnded] = useState(false);
   const connection = useMutation({
     mutationFn: () => joinMeeting(id!),
     onSuccess: () => setInCall(true),
@@ -95,6 +97,20 @@ export function MeetingRoomView() {
     );
   }
 
+  // Si la reunión ya concluyó o el usuario finalizó la sesión
+  if (meetingEnded || meeting.status === "FINISHED") {
+    return (
+      <MeetingEndedScreen
+        meeting={meeting}
+        onNav={(screen) => {
+          if (screen === "dashboard") navigate("/");
+          else if (screen === "history") navigate("/history");
+          else navigate("/meetings");
+        }}
+      />
+    );
+  }
+
   // Si el usuario ya inicio la llamada tras pasar la validacion de horario y permisos
   if (inCall && connection.data) {
     return (
@@ -104,7 +120,7 @@ export function MeetingRoomView() {
         serverUrl={connection.data.serverUrl}
         token={connection.data.token}
         onRetry={() => { setInCall(false); connection.reset(); }}
-        onLeave={() => navigate("/meetings")}
+        onLeave={() => setMeetingEnded(true)}
       />
     );
   }
