@@ -39,6 +39,20 @@ import {
 } from "lucide-react";
 import { useMediaSettingsStore } from "@/features/settings/stores/useMediaSettingsStore";
 import type { Meeting } from "@/features/meetings/types/meeting";
+import { useCloseMeeting } from "@/features/meetings/hooks/useMeetings";
+import { useMeetingTimer } from "@/features/meetings/hooks/useMeetingTimer";
+import { MeetingTimerBanner } from "@/features/meetings/components/MeetingTimerBanner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import "./livekit.css";
 
 interface Props {
@@ -156,6 +170,8 @@ function RoomView({ meeting, onLeave }: Props) {
   const { messages: chatMessages } = useMeetingChat(meeting?.id);
   const isHost = Boolean(meeting?.hostId && localParticipant.identity === meeting.hostId);
   const { data: pendingRequests = [] } = usePendingAccessRequests(meeting?.id, isHost);
+  const closeMutation = useCloseMeeting();
+  const [showExitDialog, setShowExitDialog] = useState(false);
   const [pinned, setPinned] = useState<string>();
   const [panel, setPanel] = useState<"chat" | "people" | null>(null);
   const [more, setMore] = useState(false);
@@ -165,6 +181,28 @@ function RoomView({ meeting, onLeave }: Props) {
   const [seen, setSeen] = useState(0);
   const [started] = useState(() => Date.now());
   const [now, setNow] = useState(started);
+
+  const handleAutoEnd = useCallback(async () => {
+    try {
+      if (isHost && meeting?.id) {
+        await closeMutation.mutateAsync(meeting.id);
+      }
+    } catch (err) {
+      console.error("Error al finalizar la reunión por límite de tiempo:", err);
+    } finally {
+      await room.disconnect();
+      onLeave?.();
+    }
+  }, [isHost, meeting?.id, closeMutation, room, onLeave]);
+
+  const connected = state === ConnectionState.Connected;
+
+  const timer = useMeetingTimer({
+    meeting,
+    warningMinutes: 5,
+    onExpire: handleAutoEnd,
+    enabled: connected,
+  });
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
@@ -191,7 +229,6 @@ function RoomView({ meeting, onLeave }: Props) {
   ]
     .map((value) => String(value).padStart(2, "0"))
     .join(":");
-  const connected = state === ConnectionState.Connected;
   const run = async (action: () => Promise<unknown>) => {
     setBusy(true);
     setError("");
@@ -416,16 +453,91 @@ function RoomView({ meeting, onLeave }: Props) {
         <Control
           label="Salir"
           danger
-          onClick={() =>
-            void run(async () => {
-              await room.disconnect();
-              onLeave?.();
-            })
-          }
+          onClick={() => {
+            if (isHost) {
+              setShowExitDialog(true);
+            } else {
+              void run(async () => {
+                await room.disconnect();
+                onLeave?.();
+              });
+            }
+          }}
         >
           <PhoneOff />
         </Control>
       </footer>
+
+      {/* Banner flotante de aviso preventivo de tiempo límite */}
+      <MeetingTimerBanner
+        formattedRemaining={timer.formattedRemaining}
+        isWarningActive={timer.isWarningActive}
+        isLastMinute={timer.isLastMinute}
+        warningMinutes={timer.warningMinutes}
+        onDismiss={timer.dismissWarning}
+      />
+
+      {/* Diálogo de confirmación para el anfitrión al salir de la llamada */}
+      {isHost && (
+        <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+          <AlertDialogContent className="bg-card border border-border text-foreground max-w-md rounded-2xl shadow-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-lg font-bold text-foreground">
+                ¿Deseas salir o finalizar la reunión?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-sm text-muted-foreground mt-1">
+                Como anfitrión, puedes finalizar la sesión para todos los participantes o salir temporalmente permitiendo que la llamada continúe.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2 pt-4 border-t border-border/40">
+              <AlertDialogCancel
+                disabled={busy}
+                onClick={() => setShowExitDialog(false)}
+                className="cursor-pointer"
+              >
+                Cancelar
+              </AlertDialogCancel>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={() => {
+                  setShowExitDialog(false);
+                  void run(async () => {
+                    await room.disconnect();
+                    onLeave?.();
+                  });
+                }}
+                className="cursor-pointer text-xs"
+              >
+                Salir solo yo
+              </Button>
+              <AlertDialogAction
+                variant="destructive"
+                disabled={busy}
+                onClick={() => {
+                  setShowExitDialog(false);
+                  void run(async () => {
+                    if (meeting?.id) {
+                      try {
+                        await closeMutation.mutateAsync(meeting.id);
+                      } catch (err) {
+                        console.error("Error al finalizar reunión:", err);
+                      }
+                    }
+                    await room.disconnect();
+                    onLeave?.();
+                  });
+                }}
+                className="cursor-pointer text-xs"
+              >
+                Finalizar para todos
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
       <RoomAudioRenderer />
       <StartAudio label="Activar audio de la reunión" />
     </div>
